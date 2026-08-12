@@ -5,7 +5,7 @@ import {
   onAuthStateChanged, signOut
 } from 'https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js';
 import {
-  initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
+  initializeFirestore, getFirestore, persistentLocalCache, persistentMultipleTabManager,
   collection, doc, getDocs, setDoc, addDoc, deleteDoc, updateDoc,
   query, where, orderBy
 } from 'https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js';
@@ -21,11 +21,18 @@ export const firebaseConfig = {
 
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-export const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({
-    tabManager: persistentMultipleTabManager()
-  })
-});
+let dbInstance;
+try {
+  dbInstance = initializeFirestore(app, {
+    localCache: persistentLocalCache({
+      tabManager: persistentMultipleTabManager()
+    })
+  });
+} catch (e) {
+  console.warn('Offline Firestore cache kon niet starten; online modus wordt gebruikt.', e);
+  dbInstance = getFirestore(app);
+}
+export const db = dbInstance;
 export const googleProvider = new GoogleAuthProvider();
 
 export {

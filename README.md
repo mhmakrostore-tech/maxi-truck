@@ -106,3 +106,10 @@ Voor synchronisatie tussen tablet en pc moet Firebase later gekoppeld worden.
 - De voorraad/aantallen worden niet meer getoond in de catalogus.
 - Voorraad blijft intern actief voor verkoopcontrole en beheer.
 - Beheerder blijft voorraad zien bij Producten en Voorraad aanvullen.
+
+
+## v14 – Login herstel
+- Enter in het wachtwoordveld werkt nu via een echt login-formulier.
+- De knop Inloggen met e-mail gebruikt dezelfde submit-flow.
+- Als offline Firestore-cache niet kan starten, valt de app automatisch terug op online Firestore in plaats van dat de login vastloopt.
+- Duidelijke loginstatus/foutcode op het scherm.

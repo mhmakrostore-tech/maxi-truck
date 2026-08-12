@@ -1,3 +1,6 @@
+window.addEventListener('unhandledrejection',e=>{
+  console.error('Onverwerkte fout:',e.reason);
+});
 
 import {
   auth, db, googleProvider,
@@ -161,14 +164,24 @@ document.querySelectorAll('.tabs button').forEach(btn=>{
   });
 });
 
-document.getElementById('emailLoginBtn').onclick=async()=>{
+async function doEmailLogin(){
+  const status=document.getElementById('authStatus');
+  status.textContent='Bezig met inloggen...';
   try{
-    await signInWithEmailAndPassword(auth,
+    await signInWithEmailAndPassword(
+      auth,
       document.getElementById('loginEmail').value.trim(),
       document.getElementById('loginPassword').value
     );
-  }catch(e){document.getElementById('authStatus').textContent='Inloggen mislukt: '+e.message;}
-};
+  }catch(e){
+    status.textContent='Inloggen mislukt: '+(e.code||e.message||'onbekende fout');
+    console.error('Email login fout:',e);
+  }
+}
+document.getElementById('emailLoginBox').addEventListener('submit',async(e)=>{
+  e.preventDefault();
+  await doEmailLogin();
+});
 document.getElementById('googleLoginBtn').onclick=async()=>{
   try{ await signInWithPopup(auth, googleProvider); }
   catch(e){document.getElementById('authStatus').textContent='Google-login mislukt: '+e.message;}
