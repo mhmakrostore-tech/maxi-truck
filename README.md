@@ -43,3 +43,14 @@ Voor synchronisatie tussen tablet en pc moet Firebase later gekoppeld worden.
 - Met **Alles opslaan** worden alle ingevulde producten in één keer bijgewerkt.
 - Lege velden veranderen niets.
 - Tablet/verkoop-account ziet deze tab niet.
+
+
+## v6 – EACH / CRT
+- Catalogus blijft automatisch alfabetisch op productnaam A–Z.
+- Iedere product heeft standaard een EACH-prijs.
+- Optionele CRT-prijs + PCS per CRT.
+- Als CRT niet is ingevuld, wordt CRT niet in de catalogus getoond.
+- In Verkoop kan gekozen worden tussen EACH en CRT.
+- Bij verkoop van 1 CRT wordt automatisch het ingestelde aantal PCS van de voorraad afgetrokken.
+- Invoice en verkoophistorie tonen duidelijk EACH of CRT.
+- OB en commissie worden berekend op basis van de gekozen verkoopprijs.
