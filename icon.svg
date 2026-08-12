@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-<rect width="512" height="512" rx="96" fill="#111827"/>
-<path d="M92 154h220v178H92z" fill="#fff"/>
-<path d="M312 212h68l58 66v54H312z" fill="#e5e7eb"/>
-<circle cx="168" cy="350" r="40" fill="#fff"/>
-<circle cx="372" cy="350" r="40" fill="#fff"/>
-<text x="202" y="265" text-anchor="middle" font-family="Arial" font-size="60" font-weight="700" fill="#111827">MAXI</text>
-</svg>
