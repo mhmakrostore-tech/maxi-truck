@@ -248,3 +248,19 @@ Voor synchronisatie tussen tablet en pc moet Firebase later gekoppeld worden.
 - Bij klikken controleert de app de CRT-prijs, PCS per CRT en voorraad.
 - Als iets ontbreekt, verschijnt een duidelijke melding.
 - Bij succesvolle toevoeging verschijnt: `X CRT toegevoegd aan de factuur`.
+
+
+## v31 – CRT echte herstel
+- Kritieke fout hersteld: na toevoegen werd een niet-bestaande functie `renderProductResults()` aangeroepen.
+- Dit is vervangen door de juiste `renderProductSearch()`.
+- CRT gebruikt nu hetzelfde betrouwbare toevoegproces als EACH.
+- Bij onvoldoende voorraad verschijnt een duidelijke melding met benodigde EACH en huidige voorraad.
+- Na succesvol toevoegen springt het aantalvak terug naar 1.
+
+
+## v32 – Voorraad aanvullen printen
+- Nieuwe knop **Voorraadlijst printen** op de pagina Voorraad aanvullen.
+- Print bevat code, productnaam, huidige voorraad, ingevuld bijvullen en nieuwe voorraad.
+- Datum en tijd staan bovenaan de geprinte lijst.
+- Alleen beheerder kan deze lijst printen.
+- Als er een zoekfilter actief is, wordt alleen de gefilterde lijst geprint.

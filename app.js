@@ -268,6 +268,37 @@ document.getElementById('clearRestockBtn')?.addEventListener('click',()=>{
   renderRestock();
 });
 
+document.getElementById('printRestockBtn')?.addEventListener('click',()=>{
+  if(currentRole!=='admin'){showToast('Alleen beheerder kan de voorraadlijst printen.');return;}
+
+  const q=(document.getElementById('restockFilter')?.value||'').toLowerCase().trim();
+  let arr=products.slice().sort((a,b)=>a.name.localeCompare(b.name));
+  if(q) arr=arr.filter(p=>String(p.code).toLowerCase().includes(q)||p.name.toLowerCase().includes(q));
+
+  const rows=arr.map(p=>{
+    const inp=document.querySelector(`[data-restock="${p.id}"]`);
+    const add=inp && inp.value!=='' ? Number(inp.value||0) : 0;
+    const newStock=Number(p.stock||0)+add;
+    return `<tr>
+      <td>${esc(p.code)}</td>
+      <td>${esc(p.name)}</td>
+      <td>${Number(p.stock||0)}</td>
+      <td>${add>0?add:''}</td>
+      <td>${newStock}</td>
+    </tr>`;
+  }).join('');
+
+  const now=new Date();
+  printHtml(`
+    <h1>Maxi-Truck — Voorraad aanvullen</h1>
+    <p><strong>Datum:</strong> ${now.toLocaleDateString('nl-NL')} &nbsp; <strong>Tijd:</strong> ${now.toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'})}</p>
+    <table>
+      <tr><th>Code</th><th>Product</th><th>Huidige voorraad</th><th>Bijvullen</th><th>Nieuwe voorraad</th></tr>
+      ${rows}
+    </table>
+  `);
+});
+
 document.getElementById('saveRestockBtn')?.addEventListener('click',async()=>{
   if(currentRole!=='admin'){showToast('Alleen beheerder kan voorraad aanvullen.');return;}
 
@@ -621,7 +652,7 @@ function addToCart(id,unit='EACH',requestedQty=1){
   const pcsNeeded=newQty*stockUnitsPerSale;
 
   if(pcsNeeded>Number(p.stock||0)){
-    showToast(`Niet genoeg voorraad. Nodig: ${pcsNeeded} EACH, voorraad: ${Number(p.stock||0)}.`);
+    showToast(`Niet genoeg voorraad voor ${addQty} ${unit}. Nodig: ${pcsNeeded} EACH, voorraad: ${Number(p.stock||0)} EACH.`);
     return;
   }
 
@@ -650,6 +681,10 @@ function addToCart(id,unit='EACH',requestedQty=1){
   }
 
   renderCart();
+
+  const qtyInput=document.getElementById('saleQty-'+id);
+  if(qtyInput) qtyInput.value='1';
+
   if(unit==='CRT'){
     showToast(`${addQty} CRT toegevoegd aan de factuur.`);
   }
@@ -658,7 +693,7 @@ function addToCart(id,unit='EACH',requestedQty=1){
   const saleSearch=document.getElementById('productSearch');
   if(saleSearch){
     saleSearch.value='';
-    renderProductResults('');
+    renderProductSearch();
     saleSearch.focus();
   }
 }
