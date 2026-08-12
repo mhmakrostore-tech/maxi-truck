@@ -563,6 +563,14 @@ function addToCart(id,unit='EACH'){
     });
   }
   renderCart();
+  // v21: na product toevoegen zoekveld bij Verkoop automatisch leegmaken
+  const saleSearch = document.getElementById('productSearch');
+  if (saleSearch) {
+    saleSearch.value = '';
+    renderProductResults('');
+    saleSearch.focus();
+  }
+
 }
 function renderCart(){
   const body=document.getElementById('cartBody');

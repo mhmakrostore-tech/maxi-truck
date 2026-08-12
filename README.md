@@ -164,3 +164,7 @@ Voor synchronisatie tussen tablet en pc moet Firebase later gekoppeld worden.
 - Producten gebruikt op pc bijna de volledige schermbreedte.
 - Rechterkolommen en actieknoppen zijn beter zichtbaar.
 - Als het scherm toch te smal is, kan de producttabel horizontaal schuiven zonder de pagina af te snijden.
+
+## v21 – Zoekveld Verkoop automatisch leeg
+- Nadat een product bij Verkoop is gekozen/toegevoegd, wordt het zoekveld automatisch leeggemaakt.
+- De cursor gaat terug naar het zoekveld zodat direct het volgende product gezocht kan worden.
