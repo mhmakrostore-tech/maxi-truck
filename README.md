@@ -131,3 +131,11 @@ Voor synchronisatie tussen tablet en pc moet Firebase later gekoppeld worden.
 - Zodra de beheerder een bestaande code invoert, worden automatisch de bestaande productgegevens geladen.
 - Dit laadt naam, foto, EACH-prijs, aantalprijzen, CRT, FREE, voorraad, commissie en OB.
 - Als je probeert op te slaan met een code die al bij een ander product hoort, wordt opslaan geblokkeerd en opent het bestaande product.
+
+
+## v17 – Bestaande code direct uit Firestore laden
+- Bij het typen van een bestaande productcode zoekt Maxi-Truck nu niet alleen in de lokale lijst, maar ook rechtstreeks in Firestore.
+- Werkt ook als de productlijst op de pc nog niet ververst was.
+- Status onder de code: **Code zoeken...**, **Bestaand product geladen**, of **Nieuwe productcode**.
+- Zoeken probeert zowel tekstcodes als oude numeriek opgeslagen codes.
+- Duplicaat opslaan blijft geblokkeerd.

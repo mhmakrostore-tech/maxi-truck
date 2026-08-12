@@ -316,29 +316,87 @@ function fillProductForm(p){
   setPhotoPreview(p.photo||'');
 }
 
+
 function findProductByCode(code){
   const c=String(code||'').trim().toLowerCase();
   if(!c) return null;
   return products.find(p=>String(p.code||'').trim().toLowerCase()===c) || null;
 }
 
+async function lookupProductByCode(code,{showMessage=true}={}){
+  const status=document.getElementById('codeLookupStatus');
+  const clean=String(code||'').trim();
+  if(!clean){
+    if(status) status.textContent='';
+    return null;
+  }
+
+  if(status) status.textContent='Code zoeken...';
+
+  // First try already loaded products
+  let existing=findProductByCode(clean);
+  if(existing){
+    fillProductForm(existing);
+    if(status) status.textContent='Bestaand product geladen.';
+    if(showMessage) showToast('Bestaande code gevonden. Gegevens zijn geladen.');
+    return existing;
+  }
+
+  // Then query Firestore directly, so it also works if the local list is stale
+  try{
+    const exactSnap=await getDocs(query(collection(db,'products'),where('code','==',clean)));
+    if(!exactSnap.empty){
+      const d=exactSnap.docs[0];
+      existing={id:d.id,...d.data()};
+      if(!products.some(p=>p.id===existing.id)) products.push(existing);
+      fillProductForm(existing);
+      if(status) status.textContent='Bestaand product geladen.';
+      if(showMessage) showToast('Bestaande code gevonden. Gegevens zijn geladen.');
+      return existing;
+    }
+
+    // Fallback for codes that may have been stored as numbers
+    if(/^\d+$/.test(clean)){
+      const numeric=Number(clean);
+      const numSnap=await getDocs(query(collection(db,'products'),where('code','==',numeric)));
+      if(!numSnap.empty){
+        const d=numSnap.docs[0];
+        existing={id:d.id,...d.data()};
+        if(!products.some(p=>p.id===existing.id)) products.push(existing);
+        fillProductForm(existing);
+        if(status) status.textContent='Bestaand product geladen.';
+        if(showMessage) showToast('Bestaande code gevonden. Gegevens zijn geladen.');
+        return existing;
+      }
+    }
+  }catch(e){
+    console.error('Code zoeken mislukt:',e);
+    if(status) status.textContent='Code zoeken kon niet worden voltooid.';
+    return null;
+  }
+
+  if(status) status.textContent='Nieuwe productcode.';
+  return null;
+}
+
 let codeLookupTimer=null;
 document.getElementById('pCode').addEventListener('input',()=>{
   clearTimeout(codeLookupTimer);
-  codeLookupTimer=setTimeout(()=>{
-    const code=document.getElementById('pCode').value.trim();
-    if(!code) return;
-    const existing=findProductByCode(code);
-    if(existing){
-      fillProductForm(existing);
-      showToast('Deze productcode bestaat al. Gegevens zijn geladen.');
-    }
-  },250);
+  const code=document.getElementById('pCode').value.trim();
+  const status=document.getElementById('codeLookupStatus');
+  if(!code){
+    if(status) status.textContent='';
+    return;
+  }
+  codeLookupTimer=setTimeout(()=>lookupProductByCode(code,{showMessage:false}),500);
+});
+
+document.getElementById('pCode').addEventListener('change',()=>{
+  lookupProductByCode(document.getElementById('pCode').value,{showMessage:true});
 });
 
 document.getElementById('pCode').addEventListener('blur',()=>{
-  const existing=findProductByCode(document.getElementById('pCode').value);
-  if(existing) fillProductForm(existing);
+  lookupProductByCode(document.getElementById('pCode').value,{showMessage:false});
 });
 
 function resetProductForm(){
@@ -374,7 +432,7 @@ document.getElementById('saveProductBtn').onclick=async()=>{
     photo:currentProductPhoto||''
   };
   if(!data.code||!data.name||!Number.isFinite(data.price)||!Number.isFinite(data.stock)){showToast('Vul alle verplichte velden in.');return;}
-  const sameCode=findProductByCode(data.code);
+  const sameCode=await lookupProductByCode(data.code,{showMessage:false});
   if(sameCode && sameCode.id!==id){
     fillProductForm(sameCode);
     showToast('Deze productcode bestaat al. Bestaande gegevens zijn geladen.');
@@ -388,9 +446,10 @@ document.getElementById('saveProductBtn').onclick=async()=>{
   if(data.qtyPrice1Qty!==null && data.qtyPrice1Qty<2){showToast('Aantalprijs 1 moet minimaal 2 zijn.');return;}
   if(data.qtyPrice2Qty!==null && data.qtyPrice2Qty<2){showToast('Aantalprijs 2 moet minimaal 2 zijn.');return;}
   if(data.crtPrice===null){data.crtPcs=null;data.crtFree=false;}
-  if(id){
-    await setDoc(doc(db,'products',id),data);
-    products=products.map(p=>p.id===id?{id,...data}:p);
+  const effectiveId=document.getElementById('productId').value || id;
+  if(effectiveId){
+    await setDoc(doc(db,'products',effectiveId),data);
+    products=products.map(p=>p.id===effectiveId?{id:effectiveId,...data}:p);
   }else{
     const ref=await addDoc(collection(db,'products'),data);
     products.push({id:ref.id,...data});
@@ -402,7 +461,7 @@ document.getElementById('saveProductBtn').onclick=async()=>{
     const crtChanged=oldCrt!==newCrt;
     if(eachChanged||crtChanged){
       await addDoc(collection(db,'priceChanges'),{
-        productId:id,
+        productId:effectiveId,
         productName:data.name,
         eachChanged,
         crtChanged,
