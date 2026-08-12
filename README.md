@@ -240,3 +240,11 @@ Voor synchronisatie tussen tablet en pc moet Firebase later gekoppeld worden.
 - Als `1 FREE` actief is, wordt ook de gratis EACH per CRT meegenomen in de voorraad.
 - Als CRT-prijs of PCS per CRT ontbreekt, verschijnt nu een duidelijke melding.
 - Zoekveld wordt pas leeggemaakt nadat het product succesvol aan de factuur is toegevoegd.
+
+
+## v30 – CRT knop klikbaar + duidelijke controle
+- CRT-knop wordt niet meer stil uitgeschakeld door de voorraadweergave.
+- CRT-knop is expliciet `type="button"`.
+- Bij klikken controleert de app de CRT-prijs, PCS per CRT en voorraad.
+- Als iets ontbreekt, verschijnt een duidelijke melding.
+- Bij succesvolle toevoeging verschijnt: `X CRT toegevoegd aan de factuur`.

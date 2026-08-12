@@ -557,7 +557,7 @@ function renderProductSearch(){
   if(q) arr=arr.filter(p=>p.name.toLowerCase().includes(q)||String(p.code).toLowerCase().includes(q));
   document.getElementById('productResults').innerHTML=arr.map(p=>`<div class="product-card">${p.photo?`<img class="product-card-photo" src="${p.photo}" alt="">`:''}<strong>${esc(p.name)}</strong><div class="code">Code: ${esc(p.code)}</div><div><strong>${money(p.price)}</strong> <span class="muted">(EACH, excl. OB)</span></div>${p.p12Price!=null?`<div><strong>${money(p.p12Price)}</strong> <span class="muted">(P12, excl. OB)</span></div>`:''}${p.qtyPrice1Qty!=null?`<div><strong>${money(p.qtyPrice1Price)}</strong> <span class="muted">(${p.qtyPrice1Qty} EACH, excl. OB)</span></div>`:''}${p.qtyPrice2Qty!=null?`<div><strong>${money(p.qtyPrice2Price)}</strong> <span class="muted">(${p.qtyPrice2Qty} EACH, excl. OB)</span></div>`:''}${p.crtPrice!=null?`<div><strong>${money(p.crtPrice)}</strong> <span class="muted">(CRT ${p.crtPcs} PCS, excl. OB)</span>${p.crtFree?` <span class="free-badge">+ 1 FREE</span>`:''}</div>`:''}<div class="sale-choice">
 <input class="sale-qty-input" id="saleQty-${p.id}" type="number" min="1" step="1" value="1" inputmode="numeric" aria-label="Aantal">
-<button data-add-each="${p.id}" ${p.stock<=0?'disabled':''}>EACH</button>${p.p12Price!=null?`<button class="secondary" data-add-p12="${p.id}" ${p.stock<12?'disabled':''}>P12</button>`:''}${p.qtyPrice1Qty!=null?`<button class="secondary" data-add-deal1="${p.id}" ${p.stock<p.qtyPrice1Qty?'disabled':''}>${p.qtyPrice1Qty} EACH</button>`:''}${p.qtyPrice2Qty!=null?`<button class="secondary" data-add-deal2="${p.id}" ${p.stock<p.qtyPrice2Qty?'disabled':''}>${p.qtyPrice2Qty} EACH</button>`:''}${p.crtPrice!=null?`<button class="secondary" data-add-crt="${p.id}" ${p.stock<(p.crtPcs||1)?'disabled':''}>CRT</button>`:''}</div></div>`).join('')||'<div class="muted">Geen product gevonden.</div>';
+<button type="button" data-add-each="${p.id}" ${p.stock<=0?'disabled':''}>EACH</button>${p.p12Price!=null?`<button type="button" class="secondary" data-add-p12="${p.id}" ${p.stock<12?'disabled':''}>P12</button>`:''}${p.qtyPrice1Qty!=null?`<button type="button" class="secondary" data-add-deal1="${p.id}" ${p.stock<p.qtyPrice1Qty?'disabled':''}>${p.qtyPrice1Qty} EACH</button>`:''}${p.qtyPrice2Qty!=null?`<button type="button" class="secondary" data-add-deal2="${p.id}" ${p.stock<p.qtyPrice2Qty?'disabled':''}>${p.qtyPrice2Qty} EACH</button>`:''}${p.crtPrice!=null?`<button type="button" class="secondary" data-add-crt="${p.id}">CRT</button>`:''}</div></div>`).join('')||'<div class="muted">Geen product gevonden.</div>';
   
   function qtyForProduct(id){
     const el=document.getElementById('saleQty-'+id);
@@ -598,12 +598,18 @@ function addToCart(id,unit='EACH',requestedQty=1){
     unitPrice=Number(p.qtyPrice2Price);
     label=`${unitsPerSale} EACH`;
   }else if(unit==='CRT'){
-    if(p.crtPrice==null || !Number(p.crtPcs)){
-      showToast('CRT-prijs of PCS per CRT ontbreekt bij dit product.');
+    const crtPrice=Number(p.crtPrice);
+    const crtPcs=Math.floor(Number(p.crtPcs));
+    if(!Number.isFinite(crtPrice) || crtPrice<0){
+      showToast('CRT-prijs ontbreekt bij dit product.');
       return;
     }
-    unitsPerSale=Number(p.crtPcs);
-    unitPrice=Number(p.crtPrice);
+    if(!Number.isFinite(crtPcs) || crtPcs<1){
+      showToast('Vul bij Producten eerst PCS per CRT in.');
+      return;
+    }
+    unitsPerSale=crtPcs;
+    unitPrice=crtPrice;
     freePerCrt=p.crtFree?1:0;
     label='CRT';
   }
@@ -644,6 +650,9 @@ function addToCart(id,unit='EACH',requestedQty=1){
   }
 
   renderCart();
+  if(unit==='CRT'){
+    showToast(`${addQty} CRT toegevoegd aan de factuur.`);
+  }
 
   // Zoekveld pas NA succesvol toevoegen leegmaken.
   const saleSearch=document.getElementById('productSearch');
