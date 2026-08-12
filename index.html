@@ -35,7 +35,7 @@
     <h1>Maxi-Truck</h1>
     <p>Verkoop • Voorraad • Dagafsluiting</p>
   </div>
-  <div class="actions"><span id="userBadge"></span><button id="installBtn" class="secondary hidden">Installeren</button><button id="logoutBtn" class="secondary">Uitloggen</button></div>
+  <div class="actions"><span id="networkBadge" class="network-badge"></span><span id="userBadge"></span><button id="installBtn" class="secondary hidden">Installeren</button><button id="logoutBtn" class="secondary">Uitloggen</button></div>
 </header>
 
 <nav class="tabs hidden" id="appTabs">
@@ -71,8 +71,10 @@
           <tbody id="cartBody"></tbody>
         </table>
       </div>
-      <div class="totals">
-        <strong>Totaal: <span id="cartTotal">CG 0.00</span></strong>
+      <div class="totals invoice-totals">
+        <div><span>Subtotaal excl. OB:</span> <strong id="cartSubtotal">CG 0.00</strong></div>
+        <div><span>OB:</span> <strong id="cartObTotal">CG 0.00</strong></div>
+        <div class="grand-total"><span>Totaal incl. OB:</span> <strong id="cartTotal">CG 0.00</strong></div>
       </div>
       <div class="actions">
         <button id="saveSaleBtn">Verkoop opslaan</button>
@@ -93,6 +95,13 @@
         <label>Naam product
           <input id="pName" placeholder="Productnaam">
         </label>
+        <label>Foto product
+          <input id="pPhoto" type="file" accept="image/*" capture="environment">
+          <div id="photoPreviewWrap" class="photo-preview-wrap hidden">
+            <img id="photoPreview" class="photo-preview" alt="Productfoto">
+            <button id="removePhotoBtn" type="button" class="danger ghost icon-btn">Foto verwijderen</button>
+          </div>
+        </label>
         <label>Prijs (CG)
           <input id="pPrice" type="number" min="0" step="0.01" placeholder="0.00">
         </label>
@@ -101,6 +110,9 @@
         </label>
         <label>Commissie %
           <input id="pCommission" type="number" min="0" step="0.01" placeholder="0">
+        </label>
+        <label>OB %
+          <input id="pOb" type="number" min="0" step="0.01" placeholder="0">
         </label>
       </div>
       <div class="actions">
@@ -116,7 +128,7 @@
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Code</th><th>Product</th><th>Prijs</th><th>Voorraad</th><th>Commissie</th><th>Acties</th></tr></thead>
+          <thead><tr><th>Foto</th><th>Code</th><th>Product</th><th>Prijs excl. OB</th><th>Voorraad</th><th>Commissie</th><th>OB</th><th>Acties</th></tr></thead>
           <tbody id="productsBody"></tbody>
         </table>
       </div>

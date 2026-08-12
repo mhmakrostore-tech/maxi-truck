@@ -24,3 +24,12 @@ Voor synchronisatie tussen tablet en pc moet Firebase later gekoppeld worden.
 - Tablet-account ziet alleen Verkoop en Verkopen.
 - Data wordt via Firestore gedeeld tussen pc en tablet.
 - LET OP: vul in `firebase-app.js` nog de echte Firebase Web App config in voor het Maxi-Truck project.
+
+
+## v4 – Offline + foto + OB
+- Productfoto toevoegen/vervangen.
+- Productveld OB %.
+- Catalogus/verkoop toont prijs exclusief OB.
+- Invoice toont onderaan apart: subtotaal excl. OB, OB-bedrag, totaal incl. OB.
+- Bij Print factuur wordt de invoice eerst opgeslagen en daarna het printvenster geopend.
+- Firestore persistent cache is geactiveerd voor online/offline gebruik.

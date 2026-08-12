@@ -14,16 +14,59 @@ let products = [];
 let customers = [];
 let sales = [];
 let cart = [];
+let currentProductPhoto = '';
+let currentInvoiceId = makeId('inv');
 
 const money = n => 'CG ' + Number(n || 0).toFixed(2);
 const today = () => new Date().toISOString().slice(0,10);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function makeId(prefix='id'){
+  if(window.crypto && crypto.randomUUID) return prefix + '_' + crypto.randomUUID();
+  return prefix + '_' + Date.now() + '_' + Math.random().toString(36).slice(2,10);
+}
+async function compressPhoto(file){
+  if(!file) return '';
+  const dataUrl=await new Promise((resolve,reject)=>{
+    const r=new FileReader(); r.onload=()=>resolve(r.result); r.onerror=reject; r.readAsDataURL(file);
+  });
+  const img=await new Promise((resolve,reject)=>{
+    const im=new Image(); im.onload=()=>resolve(im); im.onerror=reject; im.src=dataUrl;
+  });
+  const max=640; let w=img.width,h=img.height;
+  if(w>h && w>max){h=Math.round(h*max/w);w=max;}
+  else if(h>=w && h>max){w=Math.round(w*max/h);h=max;}
+  const c=document.createElement('canvas'); c.width=w;c.height=h;
+  c.getContext('2d').drawImage(img,0,0,w,h);
+  return c.toDataURL('image/jpeg',0.72);
+}
+function setPhotoPreview(data){
+  currentProductPhoto=data||'';
+  const wrap=document.getElementById('photoPreviewWrap'), img=document.getElementById('photoPreview');
+  if(currentProductPhoto){img.src=currentProductPhoto;wrap.classList.remove('hidden');}
+  else{img.removeAttribute('src');wrap.classList.add('hidden');}
+}
+function calcLine(line){
+  const subtotal=Number(line.price||0)*Number(line.qty||0);
+  const obAmount=subtotal*(Number(line.ob||0)/100);
+  return {subtotal,obAmount,total:subtotal+obAmount};
+}
+
 
 function showToast(msg){
   const el=document.getElementById('toast');
   el.textContent=msg; el.classList.remove('hidden');
   setTimeout(()=>el.classList.add('hidden'),2200);
 }
+function updateNetworkBadge(){
+  const el=document.getElementById('networkBadge'); if(!el)return;
+  if(navigator.onLine){el.textContent='Online';el.classList.remove('offline');el.classList.add('online');}
+  else{el.textContent='Offline';el.classList.remove('online');el.classList.add('offline');}
+}
+window.addEventListener('online',()=>{updateNetworkBadge();showToast('Internet terug. Synchronisatie loopt automatisch.');});
+window.addEventListener('offline',()=>{updateNetworkBadge();showToast('Offline modus actief.');});
+updateNetworkBadge();
+
 
 function showApp(user){
   currentUser=user;
@@ -140,8 +183,16 @@ function renderCustomers(){
 }
 
 function resetProductForm(){
-  ['productId','pCode','pName','pPrice','pStock','pCommission'].forEach(id=>document.getElementById(id).value='');
+  ['productId','pCode','pName','pPrice','pStock','pCommission','pOb'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('pPhoto').value='';
+  setPhotoPreview('');
 }
+document.getElementById('pPhoto').addEventListener('change',async e=>{
+  const file=e.target.files && e.target.files[0]; if(!file)return;
+  try{setPhotoPreview(await compressPhoto(file));}catch(e){showToast('Foto kon niet worden gelezen.');}
+});
+document.getElementById('removePhotoBtn').onclick=()=>{document.getElementById('pPhoto').value='';setPhotoPreview('');};
+
 document.getElementById('saveProductBtn').onclick=async()=>{
   if(currentRole!=='admin'){showToast('Alleen beheerder kan producten wijzigen.');return;}
   const id=document.getElementById('productId').value;
@@ -150,7 +201,9 @@ document.getElementById('saveProductBtn').onclick=async()=>{
     name:document.getElementById('pName').value.trim(),
     price:Number(document.getElementById('pPrice').value),
     stock:Number(document.getElementById('pStock').value),
-    commission:Number(document.getElementById('pCommission').value||0)
+    commission:Number(document.getElementById('pCommission').value||0),
+    ob:Number(document.getElementById('pOb').value||0),
+    photo:currentProductPhoto||''
   };
   if(!data.code||!data.name||!Number.isFinite(data.price)||!Number.isFinite(data.stock)){showToast('Vul alle verplichte velden in.');return;}
   if(id){
@@ -170,7 +223,7 @@ function renderProducts(){
   let arr=products.slice().sort((a,b)=>a.name.localeCompare(b.name));
   if(q) arr=arr.filter(p=>p.name.toLowerCase().includes(q)||String(p.code).toLowerCase().includes(q));
   const body=document.getElementById('productsBody');
-  body.innerHTML=arr.length?arr.map(p=>`<tr><td><strong>${esc(p.code)}</strong></td><td>${esc(p.name)}</td><td>${money(p.price)}</td><td>${p.stock}</td><td>${Number(p.commission||0).toFixed(2)}%</td><td>${currentRole==='admin'?`<button class="icon-btn" data-edit="${p.id}">Bewerken</button> <button class="danger icon-btn" data-delete="${p.id}">Verwijderen</button>`:''}</td></tr>`).join(''):'<tr><td colspan="6" class="muted">Geen producten.</td></tr>';
+  body.innerHTML=arr.length?arr.map(p=>`<tr><td>${p.photo?`<img class="product-thumb" src="${p.photo}" alt="">`:''}</td><td><strong>${esc(p.code)}</strong></td><td>${esc(p.name)}</td><td>${money(p.price)}</td><td>${p.stock}</td><td>${Number(p.commission||0).toFixed(2)}%</td><td>${Number(p.ob||0).toFixed(2)}%</td><td>${currentRole==='admin'?`<button class="icon-btn" data-edit="${p.id}">Bewerken</button> <button class="danger icon-btn" data-delete="${p.id}">Verwijderen</button>`:''}</td></tr>`).join(''):'<tr><td colspan="8" class="muted">Geen producten.</td></tr>';
   body.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{
     const p=products.find(x=>x.id===b.dataset.edit); if(!p)return;
     document.getElementById('productId').value=p.id;
@@ -179,6 +232,8 @@ function renderProducts(){
     document.getElementById('pPrice').value=p.price;
     document.getElementById('pStock').value=p.stock;
     document.getElementById('pCommission').value=p.commission||0;
+    document.getElementById('pOb').value=p.ob||0;
+    setPhotoPreview(p.photo||'');
     window.scrollTo({top:0,behavior:'smooth'});
   });
   body.querySelectorAll('[data-delete]').forEach(b=>b.onclick=async()=>{
@@ -195,7 +250,7 @@ function renderProductSearch(){
   let arr=products.slice().sort((a,b)=>a.name.localeCompare(b.name));
   if(q) arr=arr.filter(p=>p.name.toLowerCase().includes(q)||String(p.code).toLowerCase().includes(q));
   if(!q) arr=arr.slice(0,8);
-  document.getElementById('productResults').innerHTML=arr.map(p=>`<div class="product-card"><div class="code">Code: ${esc(p.code)}</div><strong>${esc(p.name)}</strong><div>${money(p.price)}</div><div class="stock ${p.stock<=5?'low':''}">Voorraad: ${p.stock}</div><div>Commissie: ${Number(p.commission||0).toFixed(2)}%</div><button data-add="${p.id}" ${p.stock<=0?'disabled':''}>Toevoegen</button></div>`).join('')||'<div class="muted">Geen product gevonden.</div>';
+  document.getElementById('productResults').innerHTML=arr.map(p=>`<div class="product-card">${p.photo?`<img class="product-card-photo" src="${p.photo}" alt="">`:''}<div class="code">Code: ${esc(p.code)}</div><strong>${esc(p.name)}</strong><div><strong>${money(p.price)}</strong> <span class="muted">(excl. OB)</span></div><div class="stock ${p.stock<=5?'low':''}">Voorraad: ${p.stock}</div><div>OB: ${Number(p.ob||0).toFixed(2)}%</div><div>Commissie: ${Number(p.commission||0).toFixed(2)}%</div><button data-add="${p.id}" ${p.stock<=0?'disabled':''}>Toevoegen</button></div>`).join('')||'<div class="muted">Geen product gevonden.</div>';
   document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>addToCart(b.dataset.add));
 }
 
@@ -203,7 +258,7 @@ function addToCart(id){
   const p=products.find(x=>x.id===id); if(!p||p.stock<=0)return;
   const l=cart.find(x=>x.productId===id);
   if(l){if(l.qty>=p.stock){showToast('Niet genoeg voorraad.');return;} l.qty++;}
-  else cart.push({productId:p.id,code:p.code,name:p.name,price:p.price,commission:p.commission||0,qty:1});
+  else cart.push({productId:p.id,code:p.code,name:p.name,price:p.price,commission:p.commission||0,ob:p.ob||0,qty:1});
   renderCart();
 }
 function renderCart(){
@@ -218,57 +273,90 @@ function renderCart(){
     let q=Math.max(1,Number(inp.value)||1); if(p&&q>p.stock)q=p.stock; l.qty=q; renderCart();
   });
   body.querySelectorAll('[data-remove]').forEach(b=>b.onclick=()=>{cart.splice(Number(b.dataset.remove),1);renderCart();});
-  document.getElementById('cartTotal').textContent=money(cart.reduce((s,l)=>s+l.price*l.qty,0));
+  const subtotal=cart.reduce((s,l)=>s+calcLine(l).subtotal,0);
+  const obTotal=cart.reduce((s,l)=>s+calcLine(l).obAmount,0);
+  document.getElementById('cartSubtotal').textContent=money(subtotal);
+  document.getElementById('cartObTotal').textContent=money(obTotal);
+  document.getElementById('cartTotal').textContent=money(subtotal+obTotal);
 }
 document.getElementById('clearCartBtn').onclick=()=>{cart=[];renderCart();};
 
-document.getElementById('saveSaleBtn').onclick=async()=>{
-  if(cart.length===0){showToast('Voeg eerst producten toe.');return;}
+async function saveCurrentSale({printAfter=false}={}){
+  if(cart.length===0){showToast('Voeg eerst producten toe.');return null;}
   const customer=document.getElementById('saleCustomer').value.trim()||'Contant';
 
   for(const l of cart){
     const p=products.find(x=>x.id===l.productId);
-    if(!p||p.stock<l.qty){showToast('Niet genoeg voorraad voor '+l.name);return;}
+    if(!p||p.stock<l.qty){showToast('Niet genoeg voorraad voor '+l.name);return null;}
   }
 
   if(customer!=='Contant' && !customers.some(c=>c.name.toLowerCase()===customer.toLowerCase())){
-    const ref=await addDoc(collection(db,'customers'),{name:customer});
-    customers.push({id:ref.id,name:customer}); renderCustomersDatalist();
+    const cref=doc(db,'customers',makeId('cust'));
+    await setDoc(cref,{name:customer});
+    customers.push({id:cref.id,name:customer}); renderCustomersDatalist();
   }
 
-  const lines=cart.map(l=>({
-    productId:l.productId,code:l.code,name:l.name,price:l.price,commission:l.commission,qty:l.qty,
-    total:l.price*l.qty,commissionAmount:(l.price*l.qty)*(Number(l.commission||0)/100)
-  }));
+  const lines=cart.map(l=>{
+    const c=calcLine(l);
+    return {
+      productId:l.productId,code:l.code,name:l.name,price:l.price,commission:l.commission,ob:l.ob||0,qty:l.qty,
+      subtotal:c.subtotal,obAmount:c.obAmount,total:c.total,
+      commissionAmount:c.subtotal*(Number(l.commission||0)/100)
+    };
+  });
+  const subtotal=lines.reduce((s,l)=>s+l.subtotal,0);
+  const obTotal=lines.reduce((s,l)=>s+l.obAmount,0);
+  const total=subtotal+obTotal;
+
   const sale={
-    date:today(),createdAt:new Date().toISOString(),customer,
-    lines,total:lines.reduce((s,l)=>s+l.total,0),
+    invoiceId:currentInvoiceId,date:today(),createdAt:new Date().toISOString(),customer,lines,
+    subtotal,obTotal,total,
     commissionTotal:lines.reduce((s,l)=>s+l.commissionAmount,0),
     createdBy:currentUser.email
   };
-  const sref=await addDoc(collection(db,'sales'),sale);
-  sales.push({id:sref.id,...sale});
+
+  await setDoc(doc(db,'sales',currentInvoiceId),sale);
+  const idx=sales.findIndex(s=>s.id===currentInvoiceId);
+  if(idx>=0) sales[idx]={id:currentInvoiceId,...sale}; else sales.push({id:currentInvoiceId,...sale});
 
   for(const l of lines){
     const p=products.find(x=>x.id===l.productId); p.stock-=l.qty;
     await updateDoc(doc(db,'products',p.id),{stock:p.stock});
   }
-  cart=[]; document.getElementById('saleCustomer').value=''; renderAll(); showToast('Verkoop opgeslagen.');
-};
 
-document.getElementById('printSaleBtn').onclick=()=>{
-  if(cart.length===0){showToast('Geen factuur om te printen.');return;}
-  const customer=document.getElementById('saleCustomer').value.trim()||'Contant';
-  const total=cart.reduce((s,l)=>s+l.price*l.qty,0);
-  printHtml(`<h1>Maxi-Truck</h1><p><strong>Klant:</strong> ${esc(customer)}</p><p><strong>Datum:</strong> ${new Date().toLocaleString('nl-NL')}</p><table><tr><th>Code</th><th>Product</th><th>Aantal</th><th>Prijs</th><th>Totaal</th></tr>${cart.map(l=>`<tr><td>${esc(l.code)}</td><td>${esc(l.name)}</td><td>${l.qty}</td><td>${money(l.price)}</td><td>${money(l.price*l.qty)}</td></tr>`).join('')}</table><h2 style="text-align:right">Totaal: ${money(total)}</h2>`);
-};
+  const printable={...sale};
+  cart=[]; currentInvoiceId=makeId('inv');
+  document.getElementById('saleCustomer').value='';
+  renderAll();
+  showToast(navigator.onLine?'Invoice opgeslagen.':'Invoice offline opgeslagen; synchroniseert later.');
+  if(printAfter) printSavedInvoice(printable);
+  return printable;
+}
+
+document.getElementById('saveSaleBtn').onclick=()=>saveCurrentSale({printAfter:false});
+
+function printSavedInvoice(sale){
+  printHtml(`<h1>Maxi-Truck</h1>
+  <p><strong>Invoice:</strong> ${esc(sale.invoiceId)}</p>
+  <p><strong>Klant:</strong> ${esc(sale.customer)}</p>
+  <p><strong>Datum:</strong> ${new Date(sale.createdAt).toLocaleString('nl-NL')}</p>
+  <table><tr><th>Code</th><th>Product</th><th>Aantal</th><th>Prijs excl. OB</th><th>Bedrag</th></tr>
+  ${sale.lines.map(l=>`<tr><td>${esc(l.code)}</td><td>${esc(l.name)}</td><td>${l.qty}</td><td>${money(l.price)}</td><td>${money(l.subtotal)}</td></tr>`).join('')}
+  </table>
+  <hr>
+  <p style="text-align:right"><strong>Subtotaal excl. OB:</strong> ${money(sale.subtotal)}</p>
+  <p style="text-align:right"><strong>OB:</strong> ${money(sale.obTotal)}</p>
+  <h2 style="text-align:right">Totaal incl. OB: ${money(sale.total)}</h2>`);
+}
+
+document.getElementById('printSaleBtn').onclick=()=>saveCurrentSale({printAfter:true});
 
 document.getElementById('historyDate').value=today();
 document.getElementById('historyDate').addEventListener('change',renderHistory);
 function renderHistory(){
   const date=document.getElementById('historyDate').value||today();
   const arr=sales.filter(s=>s.date===date).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
-  document.getElementById('salesHistory').innerHTML=arr.length?arr.map(s=>`<div class="sale-card"><div class="sale-head"><span>${esc(s.customer)}</span><span>${money(s.total)}</span></div><div>${new Date(s.createdAt).toLocaleString('nl-NL')}</div><div class="sale-lines">${s.lines.map(l=>`${esc(l.code)} — ${esc(l.name)} × ${l.qty} = ${money(l.total)}`).join('<br>')}</div></div>`).join(''):'<div class="muted">Geen verkopen op deze datum.</div>';
+  document.getElementById('salesHistory').innerHTML=arr.length?arr.map(s=>`<div class="sale-card"><div class="sale-head"><span>${esc(s.customer)}</span><span>${money(s.total)}</span></div><div>${new Date(s.createdAt).toLocaleString('nl-NL')}</div><div class="sale-lines">${s.lines.map(l=>`${esc(l.code)} — ${esc(l.name)} × ${l.qty} = ${money(l.subtotal ?? (l.price*l.qty))} excl. OB`).join('<br>')}<br><strong>OB:</strong> ${money(s.obTotal||0)} • <strong>Totaal incl. OB:</strong> ${money(s.total)}</div></div>`).join(''):'<div class="muted">Geen verkopen op deze datum.</div>';
 }
 
 document.getElementById('closingDate').value=today();
@@ -279,11 +367,17 @@ function closingData(date){
   const daySales=sales.filter(s=>s.date===date), grouped={};
   daySales.forEach(s=>s.lines.forEach(l=>{
     const k=l.productId||l.code;
-    if(!grouped[k])grouped[k]={code:l.code,name:l.name,qty:0,total:0,commission:0};
-    grouped[k].qty+=l.qty; grouped[k].total+=l.total; grouped[k].commission+=l.commissionAmount||0;
+    if(!grouped[k])grouped[k]={code:l.code,name:l.name,qty:0,total:0,subtotal:0,obTotal:0,commission:0};
+    grouped[k].qty+=l.qty;
+    grouped[k].subtotal+=(l.subtotal ?? (l.price*l.qty));
+    grouped[k].obTotal+=(l.obAmount||0);
+    grouped[k].total+=l.total;
+    grouped[k].commission+=l.commissionAmount||0;
   }));
   return {
     products:Object.values(grouped).sort((a,b)=>a.name.localeCompare(b.name)),
+    subtotal:daySales.reduce((s,x)=>s+(x.subtotal ?? (x.total-(x.obTotal||0))),0),
+    obTotal:daySales.reduce((s,x)=>s+(x.obTotal||0),0),
     total:daySales.reduce((s,x)=>s+x.total,0),
     commission:daySales.reduce((s,x)=>s+(x.commissionTotal||0),0)
   };
@@ -291,7 +385,7 @@ function closingData(date){
 function renderClosing(){
   if(currentRole!=='admin')return;
   const date=document.getElementById('closingDate').value||today(), d=closingData(date);
-  document.getElementById('closingSummary').innerHTML=d.products.length?`<div class="summary-box">${d.products.map(p=>`<div class="closing-row"><div><strong>${esc(p.code)}</strong> — ${esc(p.name)}</div><div>${p.qty} stuks</div><div>${money(p.total)}</div></div>`).join('')}<div class="summary-line"><strong>Totaal alle producten</strong><strong>${money(d.total)}</strong></div><div class="summary-line"><strong>Totale commissie</strong><strong>${money(d.commission)}</strong></div></div>`:'<div class="muted">Nog geen verkopen voor deze dag.</div>';
+  document.getElementById('closingSummary').innerHTML=d.products.length?`<div class="summary-box">${d.products.map(p=>`<div class="closing-row"><div><strong>${esc(p.code)}</strong> — ${esc(p.name)}</div><div>${p.qty} stuks</div><div>${money(p.total)}</div></div>`).join('')}<div class="summary-line"><strong>Subtotaal excl. OB</strong><strong>${money(d.subtotal)}</strong></div><div class="summary-line"><strong>OB</strong><strong>${money(d.obTotal)}</strong></div><div class="summary-line"><strong>Totaal incl. OB</strong><strong>${money(d.total)}</strong></div><div class="summary-line"><strong>Totale commissie</strong><strong>${money(d.commission)}</strong></div></div>`:'<div class="muted">Nog geen verkopen voor deze dag.</div>';
   document.getElementById('closingSalesTotal').value=money(d.total);
   document.getElementById('closingCommission').value=money(d.commission);
   updateDifference();
