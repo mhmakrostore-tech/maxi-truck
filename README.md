@@ -195,3 +195,11 @@ Voor synchronisatie tussen tablet en pc moet Firebase later gekoppeld worden.
 - Bij een bestaande productcode wordt nu eerst het echte product-ID gekoppeld voordat wordt opgeslagen.
 - Na opslaan worden de producten opnieuw uit Firestore geladen, zodat het opgeslagen commissiebasisbedrag direct zichtbaar blijft.
 - Commissiebasis blijft per product apart.
+
+
+## v25 – Commissie basis definitief opgeslagen
+- Fout hersteld: `commissionBase` en `tpCommission` werden eerder niet in het productdocument meegeschreven.
+- Het bedrag bij **Commissie basis (CG)** wordt nu echt per product in Firestore opgeslagen.
+- Bij opnieuw openen van hetzelfde product wordt het opgeslagen bedrag terug geladen.
+- Nieuwe producten starten met een leeg commissiebasisveld.
+- TP-producten blijven automatisch P12- of CRT-prijs als commissiebasis gebruiken, afhankelijk van wat op de bon is verkocht.

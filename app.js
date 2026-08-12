@@ -328,6 +328,8 @@ function fillProductForm(p){
   document.getElementById('pCrtFree').checked=!!p.crtFree;
   document.getElementById('pStock').value=p.stock ?? 0;
   document.getElementById('pCommission').value=p.commission ?? 0;
+  document.getElementById('pCommissionBase').value=p.commissionBase ?? '';
+  document.getElementById('pTpCommission').checked=!!p.tpCommission;
   document.getElementById('pOb').value=p.ob ?? 0;
   setPhotoPreview(p.photo||'');
 }
@@ -447,6 +449,8 @@ document.getElementById('saveProductBtn').onclick=async()=>{
     crtFree:document.getElementById('pCrtFree').checked===true,
     stock:Number(document.getElementById('pStock').value),
     commission:Number(document.getElementById('pCommission').value||0),
+    commissionBase:Number(document.getElementById('pCommissionBase').value||0),
+    tpCommission:Boolean(document.getElementById('pTpCommission').checked),
     ob:Number(document.getElementById('pOb').value||0),
     photo:currentProductPhoto||''
   };
@@ -585,7 +589,7 @@ function addToCart(id,unit='EACH'){
     l.qty++;
   }else{
     cart.push({
-      key,productId:p.id,code:p.code,name:p.name,price:unitPrice,commission:p.commission||0,ob:p.ob||0,
+      key,productId:p.id,code:p.code,name:p.name,price:unitPrice,commission:p.commission||0,commissionBase:p.commissionBase||0,tpCommission:!!p.tpCommission,ob:p.ob||0,
       qty:1,unit,label,unitsPerSale,freePerCrt,stockUnitsPerSale
     });
   }
@@ -657,7 +661,8 @@ async function saveCurrentSale({printAfter=false}={}){
       freeQty:(l.unit==='CRT'?Number(l.qty||0)*Number(l.freePerCrt||0):0),
       stockPcs:Number(l.qty||0)*Number(l.stockUnitsPerSale||l.unitsPerSale||1),
       subtotal:c.subtotal,obAmount:c.obAmount,total:c.total,
-      commissionAmount:c.subtotal*(Number(l.commission||0)/100)
+      commissionBaseUsed:(l.tpCommission && (l.unit==='P12' || l.unit==='CRT')) ? Number(l.price||0) : Number(l.commissionBase||0),
+      commissionAmount:commissionForLine(l)
     };
   });
   const subtotal=lines.reduce((s,l)=>s+l.subtotal,0);
