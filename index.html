@@ -112,6 +112,10 @@
         <label>PCS per CRT
           <input id="pCrtPcs" type="number" min="1" step="1" placeholder="bijv. 12">
         </label>
+        <label class="checkbox-label">
+          <input id="pCrtFree" type="checkbox">
+          1 CRT = + 1 FREE
+        </label>
         <label>Voorraad
           <input id="pStock" type="number" min="0" step="1" placeholder="0">
         </label>
@@ -137,7 +141,7 @@
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Foto</th><th>Code</th><th>Product</th><th>EACH</th><th>CRT</th><th>PCS/CRT</th><th>Voorraad</th><th>Commissie</th><th>OB</th><th>Acties</th></tr></thead>
+          <thead><tr><th>Foto</th><th>Code</th><th>Product</th><th>EACH</th><th>CRT</th><th>PCS/CRT</th><th>FREE</th><th>Voorraad</th><th>Commissie</th><th>OB</th><th>Acties</th></tr></thead>
           <tbody id="productsBody"></tbody>
         </table>
       </div>

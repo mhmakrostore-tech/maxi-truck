@@ -247,6 +247,7 @@ function renderCustomers(){
 function resetProductForm(){
   ['productId','pCode','pName','pPrice','pCrtPrice','pCrtPcs','pStock','pCommission','pOb'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('pPhoto').value='';
+  document.getElementById('pCrtFree').checked=false;
   setPhotoPreview('');
 }
 document.getElementById('pPhoto').addEventListener('change',async e=>{
@@ -264,6 +265,7 @@ document.getElementById('saveProductBtn').onclick=async()=>{
     price:Number(document.getElementById('pPrice').value),
     crtPrice:document.getElementById('pCrtPrice').value===''?null:Number(document.getElementById('pCrtPrice').value),
     crtPcs:document.getElementById('pCrtPcs').value===''?null:Number(document.getElementById('pCrtPcs').value),
+    crtFree:document.getElementById('pCrtFree').checked===true,
     stock:Number(document.getElementById('pStock').value),
     commission:Number(document.getElementById('pCommission').value||0),
     ob:Number(document.getElementById('pOb').value||0),
@@ -273,7 +275,7 @@ document.getElementById('saveProductBtn').onclick=async()=>{
   if(data.crtPrice!==null && (!Number.isFinite(data.crtPrice) || !Number.isFinite(data.crtPcs) || data.crtPcs<1)){
     showToast('Vul bij CRT ook het aantal PCS per CRT in.');return;
   }
-  if(data.crtPrice===null){data.crtPcs=null;}
+  if(data.crtPrice===null){data.crtPcs=null;data.crtFree=false;}
   if(id){
     await setDoc(doc(db,'products',id),data);
     products=products.map(p=>p.id===id?{id,...data}:p);
@@ -291,7 +293,7 @@ function renderProducts(){
   let arr=products.slice().sort((a,b)=>a.name.localeCompare(b.name));
   if(q) arr=arr.filter(p=>p.name.toLowerCase().includes(q)||String(p.code).toLowerCase().includes(q));
   const body=document.getElementById('productsBody');
-  body.innerHTML=arr.length?arr.map(p=>`<tr><td>${p.photo?`<img class="product-thumb" src="${p.photo}" alt="">`:''}</td><td><strong>${esc(p.code)}</strong></td><td>${esc(p.name)}</td><td>${money(p.price)}</td><td>${p.crtPrice!=null?money(p.crtPrice):'-'}</td><td>${p.crtPrice!=null?(p.crtPcs||'-'):'-'}</td><td>${p.stock}</td><td>${Number(p.commission||0).toFixed(2)}%</td><td>${Number(p.ob||0).toFixed(2)}%</td><td>${currentRole==='admin'?`<button class="icon-btn" data-edit="${p.id}">Bewerken</button> <button class="danger icon-btn" data-delete="${p.id}">Verwijderen</button>`:''}</td></tr>`).join(''):'<tr><td colspan="10" class="muted">Geen producten.</td></tr>';
+  body.innerHTML=arr.length?arr.map(p=>`<tr><td>${p.photo?`<img class="product-thumb" src="${p.photo}" alt="">`:''}</td><td><strong>${esc(p.code)}</strong></td><td>${esc(p.name)}</td><td>${money(p.price)}</td><td>${p.crtPrice!=null?money(p.crtPrice):'-'}</td><td>${p.crtPrice!=null?(p.crtPcs||'-'):'-'}</td><td>${p.crtFree?'1 FREE':'-'}</td><td>${p.stock}</td><td>${Number(p.commission||0).toFixed(2)}%</td><td>${Number(p.ob||0).toFixed(2)}%</td><td>${currentRole==='admin'?`<button class="icon-btn" data-edit="${p.id}">Bewerken</button> <button class="danger icon-btn" data-delete="${p.id}">Verwijderen</button>`:''}</td></tr>`).join(''):'<tr><td colspan="11" class="muted">Geen producten.</td></tr>';
   body.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{
     const p=products.find(x=>x.id===b.dataset.edit); if(!p)return;
     document.getElementById('productId').value=p.id;
@@ -300,6 +302,7 @@ function renderProducts(){
     document.getElementById('pPrice').value=p.price;
     document.getElementById('pCrtPrice').value=p.crtPrice ?? '';
     document.getElementById('pCrtPcs').value=p.crtPcs ?? '';
+    document.getElementById('pCrtFree').checked=!!p.crtFree;
     document.getElementById('pStock').value=p.stock;
     document.getElementById('pCommission').value=p.commission||0;
     document.getElementById('pOb').value=p.ob||0;
@@ -320,7 +323,7 @@ function renderProductSearch(){
   let arr=products.slice().sort((a,b)=>a.name.localeCompare(b.name));
   if(q) arr=arr.filter(p=>p.name.toLowerCase().includes(q)||String(p.code).toLowerCase().includes(q));
   if(!q) arr=arr.slice(0,8);
-  document.getElementById('productResults').innerHTML=arr.map(p=>`<div class="product-card">${p.photo?`<img class="product-card-photo" src="${p.photo}" alt="">`:''}<div class="code">Code: ${esc(p.code)}</div><strong>${esc(p.name)}</strong><div><strong>${money(p.price)}</strong> <span class="muted">(EACH, excl. OB)</span></div>${p.crtPrice!=null?`<div><strong>${money(p.crtPrice)}</strong> <span class="muted">(CRT ${p.crtPcs} PCS, excl. OB)</span></div>`:''}<div class="stock ${p.stock<=5?'low':''}">Voorraad: ${p.stock} PCS</div><div>OB: ${Number(p.ob||0).toFixed(2)}%</div><div>Commissie: ${Number(p.commission||0).toFixed(2)}%</div><div class="sale-choice"><button data-add-each="${p.id}" ${p.stock<=0?'disabled':''}>EACH</button>${p.crtPrice!=null?`<button class="secondary" data-add-crt="${p.id}" ${p.stock<(p.crtPcs||1)?'disabled':''}>CRT</button>`:''}</div></div>`).join('')||'<div class="muted">Geen product gevonden.</div>';
+  document.getElementById('productResults').innerHTML=arr.map(p=>`<div class="product-card">${p.photo?`<img class="product-card-photo" src="${p.photo}" alt="">`:''}<div class="code">Code: ${esc(p.code)}</div><strong>${esc(p.name)}</strong><div><strong>${money(p.price)}</strong> <span class="muted">(EACH, excl. OB)</span></div>${p.crtPrice!=null?`<div><strong>${money(p.crtPrice)}</strong> <span class="muted">(CRT ${p.crtPcs} PCS, excl. OB)</span>${p.crtFree?` <span class="free-badge">+ 1 FREE</span>`:''}</div>`:''}<div class="stock ${p.stock<=5?'low':''}">Voorraad: ${p.stock} PCS</div><div>OB: ${Number(p.ob||0).toFixed(2)}%</div><div>Commissie: ${Number(p.commission||0).toFixed(2)}%</div><div class="sale-choice"><button data-add-each="${p.id}" ${p.stock<=0?'disabled':''}>EACH</button>${p.crtPrice!=null?`<button class="secondary" data-add-crt="${p.id}" ${p.stock<(p.crtPcs||1)?'disabled':''}>CRT</button>`:''}</div></div>`).join('')||'<div class="muted">Geen product gevonden.</div>';
   document.querySelectorAll('[data-add-each]').forEach(b=>b.onclick=()=>addToCart(b.dataset.addEach,'EACH'));
   document.querySelectorAll('[data-add-crt]').forEach(b=>b.onclick=()=>addToCart(b.dataset.addCrt,'CRT'));
 }
@@ -328,22 +331,24 @@ function renderProductSearch(){
 function addToCart(id,unit='EACH'){
   const p=products.find(x=>x.id===id); if(!p)return;
   const isCrt=unit==='CRT';
+  const freePerCrt=isCrt && p.crtFree ? 1 : 0;
   const unitsPerSale=isCrt?Number(p.crtPcs||0):1;
+  const stockUnitsPerSale=unitsPerSale+freePerCrt;
   const unitPrice=isCrt?Number(p.crtPrice):Number(p.price);
 
   if(isCrt && (p.crtPrice==null || !p.crtPcs)){showToast('CRT is niet ingesteld voor dit product.');return;}
-  if(p.stock<unitsPerSale){showToast('Niet genoeg voorraad.');return;}
+  if(p.stock<stockUnitsPerSale){showToast('Niet genoeg voorraad.');return;}
 
   const key=id+'_'+unit;
   const l=cart.find(x=>x.key===key);
   if(l){
-    const pcsNeeded=(l.qty+1)*unitsPerSale;
+    const pcsNeeded=(l.qty+1)*stockUnitsPerSale;
     if(pcsNeeded>p.stock){showToast('Niet genoeg voorraad.');return;}
     l.qty++;
   }else{
     cart.push({
       key,productId:p.id,code:p.code,name:p.name,price:unitPrice,commission:p.commission||0,ob:p.ob||0,
-      qty:1,unit,unitsPerSale
+      qty:1,unit,unitsPerSale,freePerCrt,stockUnitsPerSale
     });
   }
   renderCart();
@@ -354,11 +359,11 @@ function renderCart(){
   const table=document.getElementById('cartTable');
   if(cart.length===0){empty.classList.remove('hidden');table.classList.add('hidden');}
   else{empty.classList.add('hidden');table.classList.remove('hidden');}
-  body.innerHTML=cart.map((l,i)=>`<tr><td><strong>${esc(l.code)}</strong></td><td>${esc(l.name)} <span class="unit-badge">${l.unit}</span>${l.unit==='CRT'?`<div class="muted">${l.unitsPerSale} PCS per CRT</div>`:''}</td><td><input style="width:75px" type="number" min="1" value="${l.qty}" data-qty="${i}"></td><td>${money(l.price)}</td><td>${money(l.price*l.qty)}</td><td><button class="danger icon-btn" data-remove="${i}">X</button></td></tr>`).join('');
+  body.innerHTML=cart.map((l,i)=>`<tr><td><strong>${esc(l.code)}</strong></td><td>${esc(l.name)} <span class="unit-badge">${l.unit}</span>${l.unit==='CRT'?`<div class="muted">${l.unitsPerSale} PCS per CRT${l.freePerCrt?` + ${l.freePerCrt} FREE`:''}</div>`:''}</td><td><input style="width:75px" type="number" min="1" value="${l.qty}" data-qty="${i}"></td><td>${money(l.price)}</td><td>${money(l.price*l.qty)}</td><td><button class="danger icon-btn" data-remove="${i}">X</button></td></tr>`).join('');
   body.querySelectorAll('[data-qty]').forEach(inp=>inp.onchange=()=>{
     const i=Number(inp.dataset.qty), l=cart[i], p=products.find(x=>x.id===l.productId);
     let q=Math.max(1,Number(inp.value)||1);
-    const maxQty=p?Math.floor(Number(p.stock||0)/Number(l.unitsPerSale||1)):q;
+    const maxQty=p?Math.floor(Number(p.stock||0)/Number(l.stockUnitsPerSale||l.unitsPerSale||1)):q;
     if(q>maxQty){q=Math.max(1,maxQty);showToast('Aantal aangepast aan beschikbare voorraad.');}
     l.qty=q; renderCart();
   });
@@ -377,7 +382,7 @@ async function saveCurrentSale({printAfter=false}={}){
 
   for(const l of cart){
     const p=products.find(x=>x.id===l.productId);
-    const pcsNeeded=Number(l.qty||0)*Number(l.unitsPerSale||1);
+    const pcsNeeded=Number(l.qty||0)*Number(l.stockUnitsPerSale||l.unitsPerSale||1);
     if(!p||p.stock<pcsNeeded){showToast('Niet genoeg voorraad voor '+l.name);return null;}
   }
 
@@ -392,7 +397,9 @@ async function saveCurrentSale({printAfter=false}={}){
     return {
       productId:l.productId,code:l.code,name:l.name,price:l.price,commission:l.commission,ob:l.ob||0,qty:l.qty,
       unit:l.unit||'EACH',unitsPerSale:Number(l.unitsPerSale||1),
-      stockPcs:Number(l.qty||0)*Number(l.unitsPerSale||1),
+      freePerCrt:Number(l.freePerCrt||0),
+      freeQty:(l.unit==='CRT'?Number(l.qty||0)*Number(l.freePerCrt||0):0),
+      stockPcs:Number(l.qty||0)*Number(l.stockUnitsPerSale||l.unitsPerSale||1),
       subtotal:c.subtotal,obAmount:c.obAmount,total:c.total,
       commissionAmount:c.subtotal*(Number(l.commission||0)/100)
     };
@@ -435,7 +442,7 @@ function printSavedInvoice(sale){
   <p><strong>Klant:</strong> ${esc(sale.customer)}</p>
   <p><strong>Datum:</strong> ${new Date(sale.createdAt).toLocaleString('nl-NL')}</p>
   <table><tr><th>Code</th><th>Product</th><th>Aantal</th><th>Prijs excl. OB</th><th>Bedrag</th></tr>
-  ${sale.lines.map(l=>`<tr><td>${esc(l.code)}</td><td>${esc(l.name)} (${esc(l.unit||'EACH')})</td><td>${l.qty}</td><td>${money(l.price)}</td><td>${money(l.subtotal)}</td></tr>`).join('')}
+  ${sale.lines.map(l=>`<tr><td>${esc(l.code)}</td><td>${esc(l.name)} (${esc(l.unit||'EACH')})</td><td>${l.qty}</td><td>${money(l.price)}</td><td>${money(l.subtotal)}</td></tr>${l.freeQty?`<tr><td></td><td>+ FREE</td><td>${l.freeQty}</td><td>CG 0.00</td><td>CG 0.00</td></tr>`:''}`).join('')}
   </table>
   <hr>
   <p style="text-align:right"><strong>Subtotaal excl. OB:</strong> ${money(sale.subtotal)}</p>
@@ -450,7 +457,7 @@ document.getElementById('historyDate').addEventListener('change',renderHistory);
 function renderHistory(){
   const date=document.getElementById('historyDate').value||today();
   const arr=sales.filter(s=>s.date===date).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
-  document.getElementById('salesHistory').innerHTML=arr.length?arr.map(s=>`<div class="sale-card"><div class="sale-head"><span>${esc(s.customer)}</span><span>${money(s.total)}</span></div><div>${new Date(s.createdAt).toLocaleString('nl-NL')}</div><div class="sale-lines">${s.lines.map(l=>`${esc(l.code)} — ${esc(l.name)} (${esc(l.unit||'EACH')}) × ${l.qty} = ${money(l.subtotal ?? (l.price*l.qty))} excl. OB`).join('<br>')}<br><strong>OB:</strong> ${money(s.obTotal||0)} • <strong>Totaal incl. OB:</strong> ${money(s.total)}</div></div>`).join(''):'<div class="muted">Geen verkopen op deze datum.</div>';
+  document.getElementById('salesHistory').innerHTML=arr.length?arr.map(s=>`<div class="sale-card"><div class="sale-head"><span>${esc(s.customer)}</span><span>${money(s.total)}</span></div><div>${new Date(s.createdAt).toLocaleString('nl-NL')}</div><div class="sale-lines">${s.lines.map(l=>`${esc(l.code)} — ${esc(l.name)} (${esc(l.unit||'EACH')}) × ${l.qty} = ${money(l.subtotal ?? (l.price*l.qty))} excl. OB${l.freeQty?`<br>+ FREE × ${l.freeQty} = CG 0.00`:''}`).join('<br>')}<br><strong>OB:</strong> ${money(s.obTotal||0)} • <strong>Totaal incl. OB:</strong> ${money(s.total)}</div></div>`).join(''):'<div class="muted">Geen verkopen op deze datum.</div>';
 }
 
 document.getElementById('closingDate').value=today();
@@ -462,8 +469,9 @@ function closingData(date){
   daySales.forEach(s=>s.lines.forEach(l=>{
     const k=l.productId||l.code;
     const groupKey=k+'_'+(l.unit||'EACH');
-    if(!grouped[groupKey])grouped[groupKey]={code:l.code,name:l.name,unit:l.unit||'EACH',qty:0,stockPcs:0,total:0,subtotal:0,obTotal:0,commission:0};
+    if(!grouped[groupKey])grouped[groupKey]={code:l.code,name:l.name,unit:l.unit||'EACH',qty:0,freeQty:0,stockPcs:0,total:0,subtotal:0,obTotal:0,commission:0};
     grouped[groupKey].qty+=l.qty;
+    grouped[groupKey].freeQty+=Number(l.freeQty||0);
     grouped[groupKey].stockPcs+=Number(l.stockPcs||l.qty||0);
     grouped[groupKey].subtotal+=(l.subtotal ?? (l.price*l.qty));
     grouped[groupKey].obTotal+=(l.obAmount||0);
@@ -481,7 +489,7 @@ function closingData(date){
 function renderClosing(){
   if(currentRole!=='admin')return;
   const date=document.getElementById('closingDate').value||today(), d=closingData(date);
-  document.getElementById('closingSummary').innerHTML=d.products.length?`<div class="summary-box">${d.products.map(p=>`<div class="closing-row"><div><strong>${esc(p.code)}</strong> — ${esc(p.name)} <span class="unit-badge">${esc(p.unit||'EACH')}</span></div><div>${p.qty} ${p.unit==='CRT'?'CRT':'EACH'}${p.unit==='CRT'?` (${p.stockPcs} PCS)`:''}</div><div>${money(p.total)}</div></div>`).join('')}<div class="summary-line"><strong>Subtotaal excl. OB</strong><strong>${money(d.subtotal)}</strong></div><div class="summary-line"><strong>OB</strong><strong>${money(d.obTotal)}</strong></div><div class="summary-line"><strong>Totaal incl. OB</strong><strong>${money(d.total)}</strong></div><div class="summary-line"><strong>Totale commissie</strong><strong>${money(d.commission)}</strong></div></div>`:'<div class="muted">Nog geen verkopen voor deze dag.</div>';
+  document.getElementById('closingSummary').innerHTML=d.products.length?`<div class="summary-box">${d.products.map(p=>`<div class="closing-row"><div><strong>${esc(p.code)}</strong> — ${esc(p.name)} <span class="unit-badge">${esc(p.unit||'EACH')}</span></div><div>${p.qty} ${p.unit==='CRT'?'CRT':'EACH'}${p.unit==='CRT'?` (${p.stockPcs} PCS${p.freeQty?`, incl. ${p.freeQty} FREE`:''})`:''}</div><div>${money(p.total)}</div></div>`).join('')}<div class="summary-line"><strong>Subtotaal excl. OB</strong><strong>${money(d.subtotal)}</strong></div><div class="summary-line"><strong>OB</strong><strong>${money(d.obTotal)}</strong></div><div class="summary-line"><strong>Totaal incl. OB</strong><strong>${money(d.total)}</strong></div><div class="summary-line"><strong>Totale commissie</strong><strong>${money(d.commission)}</strong></div></div>`:'<div class="muted">Nog geen verkopen voor deze dag.</div>';
   document.getElementById('closingSalesTotal').value=money(d.total);
   document.getElementById('closingCommission').value=money(d.commission);
   updateDifference();

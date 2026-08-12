@@ -66,3 +66,13 @@ Voor synchronisatie tussen tablet en pc moet Firebase later gekoppeld worden.
 - Herstelt een lege `index.html`.
 - Behoudt de functies uit de vorige versie, inclusief foto, OB, offline/online, voorraad aanvullen, EACH/CRT en zoeken op productcode of productnaam.
 - Service worker cache verhoogd zodat browsers de herstelde site opnieuw laden.
+
+
+## v9 – CRT + FREE
+- Alleen beheerder kan per product **1 CRT = + 1 FREE** aanvinken.
+- Bij 1 CRT wordt automatisch 1 FREE toegevoegd.
+- Bij 2 CRT wordt automatisch 2 FREE toegevoegd, enz.
+- FREE staat op invoice als **FREE** met prijs **CG 0.00**.
+- Over FREE wordt geen OB en geen commissie berekend.
+- Voorraad wordt wel verminderd met de betaalde PCS plus FREE PCS.
+- Verkoop/tablet-account kan deze instelling niet wijzigen.
