@@ -179,3 +179,12 @@ Voor synchronisatie tussen tablet en pc moet Firebase later gekoppeld worden.
   - verkoop als CRT → commissie wordt berekend over de CRT-prijs.
   - andere verkoopvormen gebruiken de vaste Commissie basis.
 - Commissie blijft alleen zichtbaar/berekend voor beheerder en Dag afsluiten; niet op de invoice.
+
+
+## v23 – Commissie basis per product
+- **Commissie basis (CG)** wordt nu strikt per product opgeslagen.
+- Bij openen/bewerken van een product wordt alleen de eigen commissiebasis van dat product geladen.
+- Bij nieuw product worden commissievelden leeggemaakt zodat waarden van het vorige product niet meekomen.
+- Normale producten: commissie = eigen commissiebasis × commissie % × aantal verkocht.
+- TP-producten: bij P12 wordt gerekend over P12-prijs; bij CRT over CRT-prijs.
+- Dag afsluiten telt de berekende commissies van alle producten op.

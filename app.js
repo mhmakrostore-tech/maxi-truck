@@ -50,6 +50,20 @@ function setPhotoPreview(data){
   if(currentProductPhoto){img.src=currentProductPhoto;wrap.classList.remove('hidden');}
   else{img.removeAttribute('src');wrap.classList.add('hidden');}
 }
+
+function commissionForLine(line){
+  const pct=Number(line.commission||0)/100;
+  if(pct<=0) return 0;
+
+  // TP products: if sold as P12 or CRT, calculate on that sold unit price.
+  if(line.tpCommission && (line.unit==='P12' || line.unit==='CRT')){
+    return Number(line.price||0) * Number(line.qty||0) * pct;
+  }
+
+  // All other products: use this product's own fixed commission basis.
+  return Number(line.commissionBase||0) * Number(line.qty||0) * pct;
+}
+
 function calcLine(line){
   const subtotal=Number(line.price||0)*Number(line.qty||0);
   const obAmount=subtotal*(Number(line.ob||0)/100);
@@ -406,6 +420,8 @@ function resetProductForm(){
   document.getElementById('pPhoto').value='';
   document.getElementById('pCrtFree').checked=false;
   setPhotoPreview('');
+  document.getElementById('pCommissionBase').value='';
+  document.getElementById('pTpCommission').checked=false;
 }
 document.getElementById('pPhoto').addEventListener('change',async e=>{
   const file=e.target.files && e.target.files[0]; if(!file)return;
@@ -452,7 +468,7 @@ document.getElementById('saveProductBtn').onclick=async()=>{
   const effectiveId=document.getElementById('productId').value || id;
   if(effectiveId){
     await setDoc(doc(db,'products',effectiveId),data);
-    products=products.map(p=>p.id===effectiveId?{id:effectiveId,...data}:p);
+    products=products.map(p=>p.id===effectiveId?{...p,id:effectiveId,...data}:p);
   }else{
     const ref=await addDoc(collection(db,'products'),data);
     products.push({id:ref.id,...data});
