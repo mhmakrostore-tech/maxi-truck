@@ -9,15 +9,36 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header class="topbar">
+
+<div id="authGate" class="auth-gate">
+  <div class="auth-card">
+    <h1>Maxi-Truck</h1>
+    <p id="authStatus" class="muted">Log in om verder te gaan.</p>
+
+    <div id="emailLoginBox">
+      <label>E-mail
+        <input id="loginEmail" type="email" placeholder="E-mailadres">
+      </label>
+      <label>Wachtwoord
+        <input id="loginPassword" type="password" placeholder="Wachtwoord">
+      </label>
+      <button id="emailLoginBtn">Inloggen met e-mail</button>
+    </div>
+
+    <div class="auth-sep">of</div>
+    <button id="googleLoginBtn" class="secondary">Inloggen met Google</button>
+  </div>
+</div>
+
+<header class="topbar hidden" id="appHeader">
   <div>
     <h1>Maxi-Truck</h1>
     <p>Verkoop • Voorraad • Dagafsluiting</p>
   </div>
-  <button id="installBtn" class="secondary hidden">Installeren</button>
+  <div class="actions"><span id="userBadge"></span><button id="installBtn" class="secondary hidden">Installeren</button><button id="logoutBtn" class="secondary">Uitloggen</button></div>
 </header>
 
-<nav class="tabs">
+<nav class="tabs hidden" id="appTabs">
   <button data-view="sale" class="active">Verkoop</button>
   <button data-view="products">Producten</button>
   <button data-view="customers">Klanten</button>
@@ -25,7 +46,7 @@
   <button data-view="closing">Dag afsluiten</button>
 </nav>
 
-<main>
+<main id="appMain" class="hidden">
   <section id="view-sale" class="view active">
     <div class="card">
       <h2>Nieuwe verkoop</h2>
@@ -162,6 +183,9 @@
 
 <div id="toast" class="toast hidden"></div>
 
-<script src="app.js"></script>
+
+<script type="module" src="firebase-app.js"></script>
+
+<script type="module" src="app.js"></script>
 </body>
 </html>

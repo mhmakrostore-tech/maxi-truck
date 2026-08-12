@@ -14,3 +14,13 @@ Eerste werkende versie voor:
 Belangrijk:
 Deze versie bewaart gegevens lokaal op het apparaat via localStorage.
 Voor synchronisatie tussen tablet en pc moet Firebase later gekoppeld worden.
+
+
+## Secure v2
+- Firebase Authentication toegevoegd.
+- Beheerder: mh.makrostore@gmail.com via Google-login.
+- Verkoop/tablet: maxitrucktablet@maxitruck.local via e-mail/wachtwoord.
+- Beheerder ziet alle tabs en kan producten/voorraad/commissie beheren en dag afsluiten.
+- Tablet-account ziet alleen Verkoop en Verkopen.
+- Data wordt via Firestore gedeeld tussen pc en tablet.
+- LET OP: vul in `firebase-app.js` nog de echte Firebase Web App config in voor het Maxi-Truck project.

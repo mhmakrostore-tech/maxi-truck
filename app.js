@@ -1,259 +1,274 @@
-(function(){
-'use strict';
 
-var STORAGE = {
-  products: 'maxiTruck_products_v1',
-  customers: 'maxiTruck_customers_v1',
-  sales: 'maxiTruck_sales_v1',
-  closings: 'maxiTruck_closings_v1'
-};
+import {
+  auth, db, googleProvider,
+  signInWithPopup, signInWithEmailAndPassword, onAuthStateChanged, signOut,
+  collection, doc, getDocs, setDoc, addDoc, deleteDoc, updateDoc
+} from './firebase-app.js';
 
-var state = {
-  products: load(STORAGE.products, []),
-  customers: load(STORAGE.customers, []),
-  sales: load(STORAGE.sales, []),
-  closings: load(STORAGE.closings, []),
-  cart: []
-};
+const ADMIN_EMAIL = 'mh.makrostore@gmail.com';
+const TABLET_EMAIL = 'maxitrucktablet@maxitruck.local';
 
-function load(key, fallback){
-  try {
-    var raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : fallback;
-  } catch(e) { return fallback; }
-}
-function save(key, value){ localStorage.setItem(key, JSON.stringify(value)); }
-function uid(prefix){ return prefix + '_' + Date.now() + '_' + Math.random().toString(36).slice(2,7); }
-function money(n){ return 'CG ' + Number(n || 0).toFixed(2); }
-function today(){
-  var d=new Date(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
-  return d.getFullYear()+'-'+m+'-'+day;
-}
-function localDateTime(iso){
-  var d=new Date(iso);
-  return d.toLocaleString('nl-NL');
-}
-function toast(msg){
-  var el=document.getElementById('toast');
+let currentUser = null;
+let currentRole = null;
+let products = [];
+let customers = [];
+let sales = [];
+let cart = [];
+
+const money = n => 'CG ' + Number(n || 0).toFixed(2);
+const today = () => new Date().toISOString().slice(0,10);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function showToast(msg){
+  const el=document.getElementById('toast');
   el.textContent=msg; el.classList.remove('hidden');
-  setTimeout(function(){el.classList.add('hidden');},2200);
-}
-function esc(s){
-  return String(s == null ? '' : s).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]);});
+  setTimeout(()=>el.classList.add('hidden'),2200);
 }
 
-function seed(){
-  if(state.products.length===0){
-    state.products=[
-      {id:uid('p'),code:'78211',name:'Voorbeeld product A',price:3.79,stock:24,commission:5},
-      {id:uid('p'),code:'78212',name:'Voorbeeld product B',price:5.25,stock:12,commission:7.5}
-    ];
-    save(STORAGE.products,state.products);
+function showApp(user){
+  currentUser=user;
+  currentRole = user.email === ADMIN_EMAIL ? 'admin' : (user.email === TABLET_EMAIL ? 'sales' : null);
+
+  if(!currentRole){
+    document.getElementById('authStatus').textContent='Dit account heeft geen toegang tot Maxi-Truck.';
+    signOut(auth);
+    return;
+  }
+
+  document.getElementById('authGate').classList.add('hidden');
+  document.getElementById('appHeader').classList.remove('hidden');
+  document.getElementById('appTabs').classList.remove('hidden');
+  document.getElementById('appMain').classList.remove('hidden');
+  document.getElementById('userBadge').textContent = user.email + ' • ' + (currentRole==='admin'?'Beheerder':'Verkoop');
+
+  applyRoleUI();
+  loadAll();
+}
+
+function hideApp(){
+  document.getElementById('authGate').classList.remove('hidden');
+  document.getElementById('appHeader').classList.add('hidden');
+  document.getElementById('appTabs').classList.add('hidden');
+  document.getElementById('appMain').classList.add('hidden');
+}
+
+function applyRoleUI(){
+  const tabs=[...document.querySelectorAll('.tabs button')];
+  if(currentRole==='sales'){
+    tabs.forEach(btn=>{
+      if(!['sale','history'].includes(btn.dataset.view)) btn.classList.add('hidden');
+      else btn.classList.remove('hidden');
+    });
+    openView('sale');
+  } else {
+    tabs.forEach(btn=>btn.classList.remove('hidden'));
+    openView('products');
   }
 }
-seed();
 
-var views=document.querySelectorAll('.view');
-document.querySelectorAll('.tabs button').forEach(function(btn){
-  btn.addEventListener('click',function(){
-    document.querySelectorAll('.tabs button').forEach(function(b){b.classList.remove('active');});
-    btn.classList.add('active');
-    views.forEach(function(v){v.classList.remove('active');});
-    document.getElementById('view-'+btn.dataset.view).classList.add('active');
-    if(btn.dataset.view==='products') renderProducts();
-    if(btn.dataset.view==='customers') renderCustomers();
-    if(btn.dataset.view==='history') renderHistory();
-    if(btn.dataset.view==='closing') renderClosing();
-  });
+function openView(view){
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active', b.dataset.view===view));
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  const el=document.getElementById('view-'+view);
+  if(el) el.classList.add('active');
+}
+
+document.querySelectorAll('.tabs button').forEach(btn=>{
+  btn.addEventListener('click',()=>openView(btn.dataset.view));
 });
 
-function renderCustomersDatalist(){
-  var list=document.getElementById('customerList');
-  list.innerHTML=state.customers.slice().sort(function(a,b){return a.name.localeCompare(b.name);}).map(function(c){
-    return '<option value="'+esc(c.name)+'"></option>';
-  }).join('');
-}
-function addCustomer(name){
-  name=(name||'').trim();
-  if(!name) return;
-  var exists=state.customers.some(function(c){return c.name.toLowerCase()===name.toLowerCase();});
-  if(exists){toast('Deze klant bestaat al.');return;}
-  state.customers.push({id:uid('c'),name:name});
-  save(STORAGE.customers,state.customers);
-  renderCustomers(); renderCustomersDatalist(); toast('Klant toegevoegd.');
-}
-document.getElementById('addCustomerBtn').onclick=function(){
-  addCustomer(document.getElementById('newCustomer').value);
-  document.getElementById('newCustomer').value='';
+document.getElementById('emailLoginBtn').onclick=async()=>{
+  try{
+    await signInWithEmailAndPassword(auth,
+      document.getElementById('loginEmail').value.trim(),
+      document.getElementById('loginPassword').value
+    );
+  }catch(e){document.getElementById('authStatus').textContent='Inloggen mislukt: '+e.message;}
 };
+document.getElementById('googleLoginBtn').onclick=async()=>{
+  try{ await signInWithPopup(auth, googleProvider); }
+  catch(e){document.getElementById('authStatus').textContent='Google-login mislukt: '+e.message;}
+};
+document.getElementById('logoutBtn').onclick=()=>signOut(auth);
+onAuthStateChanged(auth,user=>user?showApp(user):hideApp());
+
+async function loadAll(){
+  await Promise.all([loadProducts(),loadCustomers(),loadSales()]);
+  renderAll();
+}
+
+async function loadProducts(){
+  const snap=await getDocs(collection(db,'products'));
+  products=snap.docs.map(d=>({id:d.id,...d.data()}));
+}
+async function loadCustomers(){
+  const snap=await getDocs(collection(db,'customers'));
+  customers=snap.docs.map(d=>({id:d.id,...d.data()}));
+}
+async function loadSales(){
+  const snap=await getDocs(collection(db,'sales'));
+  sales=snap.docs.map(d=>({id:d.id,...d.data()}));
+}
+
+function renderAll(){
+  renderProducts(); renderProductSearch(); renderCustomers(); renderCustomersDatalist(); renderHistory(); renderClosing(); renderCart();
+}
+
+function renderCustomersDatalist(){
+  document.getElementById('customerList').innerHTML=customers
+    .slice().sort((a,b)=>a.name.localeCompare(b.name))
+    .map(c=>`<option value="${esc(c.name)}"></option>`).join('');
+}
+
+document.getElementById('addCustomerBtn').onclick=async()=>{
+  if(currentRole!=='admin'){showToast('Alleen beheerder kan klanten beheren.');return;}
+  const name=document.getElementById('newCustomer').value.trim();
+  if(!name) return;
+  if(customers.some(c=>c.name.toLowerCase()===name.toLowerCase())){showToast('Deze klant bestaat al.');return;}
+  const ref=await addDoc(collection(db,'customers'),{name});
+  customers.push({id:ref.id,name}); document.getElementById('newCustomer').value=''; renderCustomers(); renderCustomersDatalist();
+};
+
 function renderCustomers(){
-  var el=document.getElementById('customersList');
-  var arr=state.customers.slice().sort(function(a,b){return a.name.localeCompare(b.name);});
-  el.innerHTML=arr.length?arr.map(function(c){
-    return '<div class="customer-row"><strong>'+esc(c.name)+'</strong><button class="danger icon-btn" data-del-customer="'+c.id+'">Verwijderen</button></div>';
-  }).join(''):'<div class="muted">Nog geen klanten.</div>';
-  el.querySelectorAll('[data-del-customer]').forEach(function(b){
-    b.onclick=function(){
-      if(confirm('Klant verwijderen?')){
-        state.customers=state.customers.filter(function(c){return c.id!==b.dataset.delCustomer;});
-        save(STORAGE.customers,state.customers); renderCustomers(); renderCustomersDatalist();
-      }
-    };
+  const el=document.getElementById('customersList');
+  const arr=customers.slice().sort((a,b)=>a.name.localeCompare(b.name));
+  el.innerHTML=arr.length?arr.map(c=>`<div class="customer-row"><strong>${esc(c.name)}</strong>${currentRole==='admin'?`<button class="danger icon-btn" data-del-customer="${c.id}">Verwijderen</button>`:''}</div>`).join(''):'<div class="muted">Nog geen klanten.</div>';
+  el.querySelectorAll('[data-del-customer]').forEach(b=>b.onclick=async()=>{
+    await deleteDoc(doc(db,'customers',b.dataset.delCustomer));
+    customers=customers.filter(c=>c.id!==b.dataset.delCustomer); renderCustomers(); renderCustomersDatalist();
   });
 }
 
-function productFormReset(){
-  ['productId','pCode','pName','pPrice','pStock','pCommission'].forEach(function(id){document.getElementById(id).value='';});
+function resetProductForm(){
+  ['productId','pCode','pName','pPrice','pStock','pCommission'].forEach(id=>document.getElementById(id).value='');
 }
-document.getElementById('saveProductBtn').onclick=function(){
-  var id=document.getElementById('productId').value;
-  var code=document.getElementById('pCode').value.trim();
-  var name=document.getElementById('pName').value.trim();
-  var price=parseFloat(document.getElementById('pPrice').value);
-  var stock=parseInt(document.getElementById('pStock').value,10);
-  var commission=parseFloat(document.getElementById('pCommission').value)||0;
-  if(!code||!name||isNaN(price)||isNaN(stock)){toast('Vul code, naam, prijs en voorraad in.');return;}
-  var duplicate=state.products.some(function(p){return p.code.toLowerCase()===code.toLowerCase() && p.id!==id;});
-  if(duplicate){toast('Deze productcode bestaat al.');return;}
+document.getElementById('saveProductBtn').onclick=async()=>{
+  if(currentRole!=='admin'){showToast('Alleen beheerder kan producten wijzigen.');return;}
+  const id=document.getElementById('productId').value;
+  const data={
+    code:document.getElementById('pCode').value.trim(),
+    name:document.getElementById('pName').value.trim(),
+    price:Number(document.getElementById('pPrice').value),
+    stock:Number(document.getElementById('pStock').value),
+    commission:Number(document.getElementById('pCommission').value||0)
+  };
+  if(!data.code||!data.name||!Number.isFinite(data.price)||!Number.isFinite(data.stock)){showToast('Vul alle verplichte velden in.');return;}
   if(id){
-    var p=state.products.find(function(x){return x.id===id;});
-    if(p){p.code=code;p.name=name;p.price=price;p.stock=stock;p.commission=commission;}
+    await setDoc(doc(db,'products',id),data);
+    products=products.map(p=>p.id===id?{id,...data}:p);
   }else{
-    state.products.push({id:uid('p'),code:code,name:name,price:price,stock:stock,commission:commission});
+    const ref=await addDoc(collection(db,'products'),data);
+    products.push({id:ref.id,...data});
   }
-  save(STORAGE.products,state.products); productFormReset(); renderProducts(); renderProductSearch(); toast('Product opgeslagen.');
+  resetProductForm(); renderProducts(); renderProductSearch(); showToast('Product opgeslagen.');
 };
-document.getElementById('cancelProductBtn').onclick=productFormReset;
+document.getElementById('cancelProductBtn').onclick=resetProductForm;
 document.getElementById('productsFilter').addEventListener('input',renderProducts);
 
 function renderProducts(){
-  var q=document.getElementById('productsFilter').value.toLowerCase().trim();
-  var arr=state.products.slice().sort(function(a,b){return a.name.localeCompare(b.name);});
-  if(q) arr=arr.filter(function(p){return p.name.toLowerCase().includes(q)||p.code.toLowerCase().includes(q);});
-  var body=document.getElementById('productsBody');
-  body.innerHTML=arr.length?arr.map(function(p){
-    return '<tr><td><strong>'+esc(p.code)+'</strong></td><td>'+esc(p.name)+'</td><td>'+money(p.price)+'</td><td>'+p.stock+'</td><td>'+Number(p.commission||0).toFixed(2)+'%</td><td><button class="icon-btn" data-edit="'+p.id+'">Bewerken</button> <button class="danger icon-btn" data-delete="'+p.id+'">Verwijderen</button></td></tr>';
-  }).join(''):'<tr><td colspan="6" class="muted">Geen producten.</td></tr>';
-  body.querySelectorAll('[data-edit]').forEach(function(b){
-    b.onclick=function(){
-      var p=state.products.find(function(x){return x.id===b.dataset.edit;});
-      if(!p) return;
-      document.getElementById('productId').value=p.id;
-      document.getElementById('pCode').value=p.code;
-      document.getElementById('pName').value=p.name;
-      document.getElementById('pPrice').value=p.price;
-      document.getElementById('pStock').value=p.stock;
-      document.getElementById('pCommission').value=p.commission||0;
-      window.scrollTo({top:0,behavior:'smooth'});
-    };
+  const q=document.getElementById('productsFilter').value.toLowerCase().trim();
+  let arr=products.slice().sort((a,b)=>a.name.localeCompare(b.name));
+  if(q) arr=arr.filter(p=>p.name.toLowerCase().includes(q)||String(p.code).toLowerCase().includes(q));
+  const body=document.getElementById('productsBody');
+  body.innerHTML=arr.length?arr.map(p=>`<tr><td><strong>${esc(p.code)}</strong></td><td>${esc(p.name)}</td><td>${money(p.price)}</td><td>${p.stock}</td><td>${Number(p.commission||0).toFixed(2)}%</td><td>${currentRole==='admin'?`<button class="icon-btn" data-edit="${p.id}">Bewerken</button> <button class="danger icon-btn" data-delete="${p.id}">Verwijderen</button>`:''}</td></tr>`).join(''):'<tr><td colspan="6" class="muted">Geen producten.</td></tr>';
+  body.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{
+    const p=products.find(x=>x.id===b.dataset.edit); if(!p)return;
+    document.getElementById('productId').value=p.id;
+    document.getElementById('pCode').value=p.code;
+    document.getElementById('pName').value=p.name;
+    document.getElementById('pPrice').value=p.price;
+    document.getElementById('pStock').value=p.stock;
+    document.getElementById('pCommission').value=p.commission||0;
+    window.scrollTo({top:0,behavior:'smooth'});
   });
-  body.querySelectorAll('[data-delete]').forEach(function(b){
-    b.onclick=function(){
-      if(confirm('Product verwijderen?')){
-        state.products=state.products.filter(function(p){return p.id!==b.dataset.delete;});
-        save(STORAGE.products,state.products); renderProducts(); renderProductSearch();
-      }
-    };
+  body.querySelectorAll('[data-delete]').forEach(b=>b.onclick=async()=>{
+    if(confirm('Product verwijderen?')){
+      await deleteDoc(doc(db,'products',b.dataset.delete));
+      products=products.filter(p=>p.id!==b.dataset.delete); renderProducts(); renderProductSearch();
+    }
   });
 }
 
-function renderProductSearch(){
-  var q=document.getElementById('productSearch').value.toLowerCase().trim();
-  var arr=state.products.slice().sort(function(a,b){return a.name.localeCompare(b.name);});
-  if(q) arr=arr.filter(function(p){return p.name.toLowerCase().includes(q)||p.code.toLowerCase().includes(q);});
-  if(!q) arr=arr.slice(0,8);
-  var el=document.getElementById('productResults');
-  el.innerHTML=arr.map(function(p){
-    return '<div class="product-card"><div class="code">Code: '+esc(p.code)+'</div><strong>'+esc(p.name)+'</strong><div>'+money(p.price)+'</div><div class="stock '+(p.stock<=5?'low':'')+'">Voorraad: '+p.stock+'</div><div>Commissie: '+Number(p.commission||0).toFixed(2)+'%</div><button data-add="'+p.id+'" '+(p.stock<=0?'disabled':'')+'>Toevoegen</button></div>';
-  }).join('') || '<div class="muted">Geen product gevonden.</div>';
-  el.querySelectorAll('[data-add]').forEach(function(b){
-    b.onclick=function(){ addToCart(b.dataset.add); };
-  });
-}
 document.getElementById('productSearch').addEventListener('input',renderProductSearch);
+function renderProductSearch(){
+  const q=document.getElementById('productSearch').value.toLowerCase().trim();
+  let arr=products.slice().sort((a,b)=>a.name.localeCompare(b.name));
+  if(q) arr=arr.filter(p=>p.name.toLowerCase().includes(q)||String(p.code).toLowerCase().includes(q));
+  if(!q) arr=arr.slice(0,8);
+  document.getElementById('productResults').innerHTML=arr.map(p=>`<div class="product-card"><div class="code">Code: ${esc(p.code)}</div><strong>${esc(p.name)}</strong><div>${money(p.price)}</div><div class="stock ${p.stock<=5?'low':''}">Voorraad: ${p.stock}</div><div>Commissie: ${Number(p.commission||0).toFixed(2)}%</div><button data-add="${p.id}" ${p.stock<=0?'disabled':''}>Toevoegen</button></div>`).join('')||'<div class="muted">Geen product gevonden.</div>';
+  document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>addToCart(b.dataset.add));
+}
 
-function addToCart(productId){
-  var p=state.products.find(function(x){return x.id===productId;});
-  if(!p || p.stock<=0) return;
-  var line=state.cart.find(function(x){return x.productId===productId;});
-  if(line){
-    if(line.qty>=p.stock){toast('Niet genoeg voorraad.');return;}
-    line.qty++;
-  }else{
-    state.cart.push({productId:p.id,code:p.code,name:p.name,price:p.price,commission:p.commission||0,qty:1});
-  }
+function addToCart(id){
+  const p=products.find(x=>x.id===id); if(!p||p.stock<=0)return;
+  const l=cart.find(x=>x.productId===id);
+  if(l){if(l.qty>=p.stock){showToast('Niet genoeg voorraad.');return;} l.qty++;}
+  else cart.push({productId:p.id,code:p.code,name:p.name,price:p.price,commission:p.commission||0,qty:1});
   renderCart();
 }
 function renderCart(){
-  var body=document.getElementById('cartBody');
-  var empty=document.getElementById('cartEmpty');
-  var table=document.getElementById('cartTable');
-  if(state.cart.length===0){empty.classList.remove('hidden');table.classList.add('hidden');}
+  const body=document.getElementById('cartBody');
+  const empty=document.getElementById('cartEmpty');
+  const table=document.getElementById('cartTable');
+  if(cart.length===0){empty.classList.remove('hidden');table.classList.add('hidden');}
   else{empty.classList.add('hidden');table.classList.remove('hidden');}
-  body.innerHTML=state.cart.map(function(l,i){
-    return '<tr><td><strong>'+esc(l.code)+'</strong></td><td>'+esc(l.name)+'</td><td><input style="width:75px" type="number" min="1" value="'+l.qty+'" data-qty="'+i+'"></td><td>'+money(l.price)+'</td><td>'+money(l.price*l.qty)+'</td><td><button class="danger icon-btn" data-remove="'+i+'">X</button></td></tr>';
-  }).join('');
-  body.querySelectorAll('[data-qty]').forEach(function(inp){
-    inp.onchange=function(){
-      var i=parseInt(inp.dataset.qty,10), l=state.cart[i], p=state.products.find(function(x){return x.id===l.productId;});
-      var q=Math.max(1,parseInt(inp.value,10)||1);
-      if(p && q>p.stock){q=p.stock;toast('Aantal aangepast aan beschikbare voorraad.');}
-      l.qty=q; renderCart();
-    };
+  body.innerHTML=cart.map((l,i)=>`<tr><td><strong>${esc(l.code)}</strong></td><td>${esc(l.name)}</td><td><input style="width:75px" type="number" min="1" value="${l.qty}" data-qty="${i}"></td><td>${money(l.price)}</td><td>${money(l.price*l.qty)}</td><td><button class="danger icon-btn" data-remove="${i}">X</button></td></tr>`).join('');
+  body.querySelectorAll('[data-qty]').forEach(inp=>inp.onchange=()=>{
+    const i=Number(inp.dataset.qty), l=cart[i], p=products.find(x=>x.id===l.productId);
+    let q=Math.max(1,Number(inp.value)||1); if(p&&q>p.stock)q=p.stock; l.qty=q; renderCart();
   });
-  body.querySelectorAll('[data-remove]').forEach(function(b){b.onclick=function(){state.cart.splice(parseInt(b.dataset.remove,10),1);renderCart();};});
-  document.getElementById('cartTotal').textContent=money(state.cart.reduce(function(s,l){return s+l.price*l.qty;},0));
+  body.querySelectorAll('[data-remove]').forEach(b=>b.onclick=()=>{cart.splice(Number(b.dataset.remove),1);renderCart();});
+  document.getElementById('cartTotal').textContent=money(cart.reduce((s,l)=>s+l.price*l.qty,0));
 }
-document.getElementById('clearCartBtn').onclick=function(){state.cart=[];renderCart();};
+document.getElementById('clearCartBtn').onclick=()=>{cart=[];renderCart();};
 
-function ensureCustomer(name){
-  name=(name||'').trim();
-  if(!name) return;
-  if(!state.customers.some(function(c){return c.name.toLowerCase()===name.toLowerCase();})){
-    state.customers.push({id:uid('c'),name:name}); save(STORAGE.customers,state.customers); renderCustomersDatalist();
+document.getElementById('saveSaleBtn').onclick=async()=>{
+  if(cart.length===0){showToast('Voeg eerst producten toe.');return;}
+  const customer=document.getElementById('saleCustomer').value.trim()||'Contant';
+
+  for(const l of cart){
+    const p=products.find(x=>x.id===l.productId);
+    if(!p||p.stock<l.qty){showToast('Niet genoeg voorraad voor '+l.name);return;}
   }
-}
-document.getElementById('saveSaleBtn').onclick=function(){
-  if(state.cart.length===0){toast('Voeg eerst producten toe.');return;}
-  var customer=document.getElementById('saleCustomer').value.trim() || 'Contant';
-  for(var i=0;i<state.cart.length;i++){
-    var l=state.cart[i], p=state.products.find(function(x){return x.id===l.productId;});
-    if(!p || p.stock<l.qty){toast('Niet genoeg voorraad voor '+l.name);return;}
+
+  if(customer!=='Contant' && !customers.some(c=>c.name.toLowerCase()===customer.toLowerCase())){
+    const ref=await addDoc(collection(db,'customers'),{name:customer});
+    customers.push({id:ref.id,name:customer}); renderCustomersDatalist();
   }
-  ensureCustomer(customer);
-  var lines=state.cart.map(function(l){
-    return {productId:l.productId,code:l.code,name:l.name,price:l.price,commission:l.commission,qty:l.qty,
-      total:l.price*l.qty, commissionAmount:(l.price*l.qty)*(Number(l.commission||0)/100)};
-  });
-  lines.forEach(function(l){
-    var p=state.products.find(function(x){return x.id===l.productId;}); if(p) p.stock-=l.qty;
-  });
-  var sale={id:uid('s'),createdAt:new Date().toISOString(),date:today(),customer:customer,lines:lines,
-    total:lines.reduce(function(s,l){return s+l.total;},0),
-    commissionTotal:lines.reduce(function(s,l){return s+l.commissionAmount;},0)};
-  state.sales.push(sale); save(STORAGE.sales,state.sales); save(STORAGE.products,state.products);
-  state.cart=[]; renderCart(); renderProductSearch(); document.getElementById('saleCustomer').value='';
-  toast('Verkoop opgeslagen en voorraad aangepast.');
+
+  const lines=cart.map(l=>({
+    productId:l.productId,code:l.code,name:l.name,price:l.price,commission:l.commission,qty:l.qty,
+    total:l.price*l.qty,commissionAmount:(l.price*l.qty)*(Number(l.commission||0)/100)
+  }));
+  const sale={
+    date:today(),createdAt:new Date().toISOString(),customer,
+    lines,total:lines.reduce((s,l)=>s+l.total,0),
+    commissionTotal:lines.reduce((s,l)=>s+l.commissionAmount,0),
+    createdBy:currentUser.email
+  };
+  const sref=await addDoc(collection(db,'sales'),sale);
+  sales.push({id:sref.id,...sale});
+
+  for(const l of lines){
+    const p=products.find(x=>x.id===l.productId); p.stock-=l.qty;
+    await updateDoc(doc(db,'products',p.id),{stock:p.stock});
+  }
+  cart=[]; document.getElementById('saleCustomer').value=''; renderAll(); showToast('Verkoop opgeslagen.');
 };
-document.getElementById('printSaleBtn').onclick=function(){
-  if(state.cart.length===0){toast('Geen factuur om te printen.');return;}
-  var customer=document.getElementById('saleCustomer').value.trim()||'Contant';
-  var total=state.cart.reduce(function(s,l){return s+l.price*l.qty;},0);
-  var html='<h1>Maxi-Truck</h1><p><strong>Klant:</strong> '+esc(customer)+'</p><p><strong>Datum:</strong> '+localDateTime(new Date().toISOString())+'</p><table style="width:100%;border-collapse:collapse"><tr><th>Code</th><th>Product</th><th>Aantal</th><th>Prijs</th><th>Totaal</th></tr>'+
-    state.cart.map(function(l){return '<tr><td>'+esc(l.code)+'</td><td>'+esc(l.name)+'</td><td>'+l.qty+'</td><td>'+money(l.price)+'</td><td>'+money(l.price*l.qty)+'</td></tr>';}).join('')+
-    '</table><h2 style="text-align:right">Totaal: '+money(total)+'</h2>';
-  printHtml(html);
+
+document.getElementById('printSaleBtn').onclick=()=>{
+  if(cart.length===0){showToast('Geen factuur om te printen.');return;}
+  const customer=document.getElementById('saleCustomer').value.trim()||'Contant';
+  const total=cart.reduce((s,l)=>s+l.price*l.qty,0);
+  printHtml(`<h1>Maxi-Truck</h1><p><strong>Klant:</strong> ${esc(customer)}</p><p><strong>Datum:</strong> ${new Date().toLocaleString('nl-NL')}</p><table><tr><th>Code</th><th>Product</th><th>Aantal</th><th>Prijs</th><th>Totaal</th></tr>${cart.map(l=>`<tr><td>${esc(l.code)}</td><td>${esc(l.name)}</td><td>${l.qty}</td><td>${money(l.price)}</td><td>${money(l.price*l.qty)}</td></tr>`).join('')}</table><h2 style="text-align:right">Totaal: ${money(total)}</h2>`);
 };
 
 document.getElementById('historyDate').value=today();
 document.getElementById('historyDate').addEventListener('change',renderHistory);
 function renderHistory(){
-  var date=document.getElementById('historyDate').value||today();
-  var arr=state.sales.filter(function(s){return s.date===date;}).sort(function(a,b){return b.createdAt.localeCompare(a.createdAt);});
-  var el=document.getElementById('salesHistory');
-  el.innerHTML=arr.length?arr.map(function(s){
-    return '<div class="sale-card"><div class="sale-head"><span>'+esc(s.customer)+'</span><span>'+money(s.total)+'</span></div><div>'+localDateTime(s.createdAt)+'</div><div class="sale-lines">'+s.lines.map(function(l){return esc(l.code)+' — '+esc(l.name)+' × '+l.qty+' = '+money(l.total);}).join('<br>')+'</div></div>';
-  }).join(''):'<div class="muted">Geen verkopen op deze datum.</div>';
+  const date=document.getElementById('historyDate').value||today();
+  const arr=sales.filter(s=>s.date===date).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
+  document.getElementById('salesHistory').innerHTML=arr.length?arr.map(s=>`<div class="sale-card"><div class="sale-head"><span>${esc(s.customer)}</span><span>${money(s.total)}</span></div><div>${new Date(s.createdAt).toLocaleString('nl-NL')}</div><div class="sale-lines">${s.lines.map(l=>`${esc(l.code)} — ${esc(l.name)} × ${l.qty} = ${money(l.total)}`).join('<br>')}</div></div>`).join(''):'<div class="muted">Geen verkopen op deze datum.</div>';
 }
 
 document.getElementById('closingDate').value=today();
@@ -261,77 +276,54 @@ document.getElementById('closingDate').addEventListener('change',renderClosing);
 document.getElementById('countedCash').addEventListener('input',updateDifference);
 
 function closingData(date){
-  var sales=state.sales.filter(function(s){return s.date===date;});
-  var grouped={};
-  sales.forEach(function(s){
-    s.lines.forEach(function(l){
-      var key=l.productId||l.code;
-      if(!grouped[key]) grouped[key]={code:l.code,name:l.name,qty:0,total:0,commission:0};
-      grouped[key].qty+=l.qty; grouped[key].total+=l.total; grouped[key].commission+=l.commissionAmount||0;
-    });
-  });
+  const daySales=sales.filter(s=>s.date===date), grouped={};
+  daySales.forEach(s=>s.lines.forEach(l=>{
+    const k=l.productId||l.code;
+    if(!grouped[k])grouped[k]={code:l.code,name:l.name,qty:0,total:0,commission:0};
+    grouped[k].qty+=l.qty; grouped[k].total+=l.total; grouped[k].commission+=l.commissionAmount||0;
+  }));
   return {
-    sales:sales,
-    products:Object.keys(grouped).map(function(k){return grouped[k];}).sort(function(a,b){return a.name.localeCompare(b.name);}),
-    total:sales.reduce(function(sum,s){return sum+s.total;},0),
-    commission:sales.reduce(function(sum,s){return sum+(s.commissionTotal||0);},0)
+    products:Object.values(grouped).sort((a,b)=>a.name.localeCompare(b.name)),
+    total:daySales.reduce((s,x)=>s+x.total,0),
+    commission:daySales.reduce((s,x)=>s+(x.commissionTotal||0),0)
   };
 }
 function renderClosing(){
-  var date=document.getElementById('closingDate').value||today(), d=closingData(date);
-  var el=document.getElementById('closingSummary');
-  if(!d.products.length) el.innerHTML='<div class="muted">Nog geen verkopen voor deze dag.</div>';
-  else el.innerHTML='<div class="summary-box">'+d.products.map(function(p){
-    return '<div class="closing-row"><div><strong>'+esc(p.code)+'</strong> — '+esc(p.name)+'</div><div>'+p.qty+' stuks</div><div>'+money(p.total)+'</div></div>';
-  }).join('')+'<div class="summary-line"><strong>Totaal alle producten</strong><strong>'+money(d.total)+'</strong></div><div class="summary-line"><strong>Totale commissie</strong><strong>'+money(d.commission)+'</strong></div></div>';
+  if(currentRole!=='admin')return;
+  const date=document.getElementById('closingDate').value||today(), d=closingData(date);
+  document.getElementById('closingSummary').innerHTML=d.products.length?`<div class="summary-box">${d.products.map(p=>`<div class="closing-row"><div><strong>${esc(p.code)}</strong> — ${esc(p.name)}</div><div>${p.qty} stuks</div><div>${money(p.total)}</div></div>`).join('')}<div class="summary-line"><strong>Totaal alle producten</strong><strong>${money(d.total)}</strong></div><div class="summary-line"><strong>Totale commissie</strong><strong>${money(d.commission)}</strong></div></div>`:'<div class="muted">Nog geen verkopen voor deze dag.</div>';
   document.getElementById('closingSalesTotal').value=money(d.total);
   document.getElementById('closingCommission').value=money(d.commission);
-  var saved=state.closings.find(function(c){return c.date===date;});
-  document.getElementById('countedCash').value=saved?saved.countedCash:'';
   updateDifference();
-  var msg=document.getElementById('closingSavedMsg');
-  if(saved){msg.textContent='Deze dag is opgeslagen. Geteld geld: '+money(saved.countedCash)+' • Verschil: '+money(saved.difference);msg.classList.remove('hidden');}
-  else msg.classList.add('hidden');
 }
 function updateDifference(){
-  var date=document.getElementById('closingDate').value||today(), d=closingData(date);
-  var raw=document.getElementById('countedCash').value;
-  var val=raw===''?null:parseFloat(raw);
-  var diff=(val===null||isNaN(val))?0:val-d.total;
-  var el=document.getElementById('cashDifference');
-  el.value=money(diff);
-  el.classList.remove('negative','positive','zero');
-  el.classList.add(diff<0?'negative':diff>0?'positive':'zero');
+  const date=document.getElementById('closingDate').value||today(), d=closingData(date);
+  const val=Number(document.getElementById('countedCash').value||0);
+  const diff=val-d.total;
+  document.getElementById('cashDifference').value=money(diff);
 }
-document.getElementById('saveClosingBtn').onclick=function(){
-  var date=document.getElementById('closingDate').value||today(), d=closingData(date);
-  var counted=parseFloat(document.getElementById('countedCash').value);
-  if(isNaN(counted)){toast('Vul eerst het getelde geld in.');return;}
-  var closing={date:date,salesTotal:d.total,countedCash:counted,difference:counted-d.total,commission:d.commission,savedAt:new Date().toISOString()};
-  state.closings=state.closings.filter(function(c){return c.date!==date;});
-  state.closings.push(closing); save(STORAGE.closings,state.closings); renderClosing(); toast('Dagafsluiting opgeslagen.');
+document.getElementById('saveClosingBtn').onclick=async()=>{
+  if(currentRole!=='admin'){showToast('Alleen beheerder kan de dag afsluiten.');return;}
+  const date=document.getElementById('closingDate').value||today(), d=closingData(date);
+  const counted=Number(document.getElementById('countedCash').value);
+  if(!Number.isFinite(counted)){showToast('Vul geteld geld in.');return;}
+  await setDoc(doc(db,'closings',date),{
+    date,salesTotal:d.total,countedCash:counted,difference:counted-d.total,commission:d.commission,savedAt:new Date().toISOString()
+  });
+  showToast('Dagafsluiting opgeslagen.');
 };
-document.getElementById('printClosingBtn').onclick=function(){
-  var date=document.getElementById('closingDate').value||today(), d=closingData(date);
-  var counted=parseFloat(document.getElementById('countedCash').value)||0;
-  var diff=counted-d.total;
-  var html='<h1>Maxi-Truck — Dagafsluiting</h1><p><strong>Datum:</strong> '+esc(date)+'</p><table style="width:100%;border-collapse:collapse"><tr><th>Code</th><th>Product</th><th>Aantal</th><th>Totaal</th></tr>'+
-    d.products.map(function(p){return '<tr><td>'+esc(p.code)+'</td><td>'+esc(p.name)+'</td><td>'+p.qty+'</td><td>'+money(p.total)+'</td></tr>';}).join('')+
-    '</table><hr><p><strong>Totale verkoop:</strong> '+money(d.total)+'</p><p><strong>Geld geteld:</strong> '+money(counted)+'</p><p><strong>Verschil:</strong> '+money(diff)+'</p><p><strong>Totale commissie:</strong> '+money(d.commission)+'</p>';
-  printHtml(html);
+document.getElementById('printClosingBtn').onclick=()=>{
+  if(currentRole!=='admin')return;
+  const date=document.getElementById('closingDate').value||today(), d=closingData(date);
+  const counted=Number(document.getElementById('countedCash').value||0), diff=counted-d.total;
+  printHtml(`<h1>Maxi-Truck — Dagafsluiting</h1><p><strong>Datum:</strong> ${esc(date)}</p><table><tr><th>Code</th><th>Product</th><th>Aantal</th><th>Totaal</th></tr>${d.products.map(p=>`<tr><td>${esc(p.code)}</td><td>${esc(p.name)}</td><td>${p.qty}</td><td>${money(p.total)}</td></tr>`).join('')}</table><p><strong>Totale verkoop:</strong> ${money(d.total)}</p><p><strong>Geld geteld:</strong> ${money(counted)}</p><p><strong>Verschil:</strong> ${money(diff)}</p><p><strong>Totale commissie:</strong> ${money(d.commission)}</p>`);
 };
+
 function printHtml(html){
-  var w=window.open('','_blank','width=850,height=700');
-  if(!w){toast('Sta pop-ups toe om te printen.');return;}
-  w.document.write('<!doctype html><html><head><title>Maxi-Truck</title><style>body{font-family:Arial;padding:24px}table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px solid #ddd;text-align:left}</style></head><body>'+html+'</body></html>');
-  w.document.close(); w.focus(); setTimeout(function(){w.print();},300);
+  const w=window.open('','_blank','width=850,height=700');
+  if(!w){showToast('Sta pop-ups toe om te printen.');return;}
+  w.document.write(`<!doctype html><html><head><title>Maxi-Truck</title><style>body{font-family:Arial;padding:24px}table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px solid #ddd;text-align:left}</style></head><body>${html}</body></html>`);
+  w.document.close(); w.focus(); setTimeout(()=>w.print(),300);
 }
 
-var deferredPrompt=null, installBtn=document.getElementById('installBtn');
-window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();deferredPrompt=e;installBtn.classList.remove('hidden');});
-installBtn.addEventListener('click',function(){if(deferredPrompt){deferredPrompt.prompt();deferredPrompt=null;installBtn.classList.add('hidden');}});
-
-if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('service-worker.js').catch(function(){});});}
-
-renderCustomersDatalist(); renderProductSearch(); renderCart(); renderProducts(); renderCustomers(); renderHistory(); renderClosing();
-})();
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('service-worker.js').catch(()=>{}));}
