@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#111827">
+  <title>Maxi-Truck</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <div>
+    <h1>Maxi-Truck</h1>
+    <p>Verkoop • Voorraad • Dagafsluiting</p>
+  </div>
+  <button id="installBtn" class="secondary hidden">Installeren</button>
+</header>
+
+<nav class="tabs">
+  <button data-view="sale" class="active">Verkoop</button>
+  <button data-view="products">Producten</button>
+  <button data-view="customers">Klanten</button>
+  <button data-view="history">Verkopen</button>
+  <button data-view="closing">Dag afsluiten</button>
+</nav>
+
+<main>
+  <section id="view-sale" class="view active">
+    <div class="card">
+      <h2>Nieuwe verkoop</h2>
+      <div class="grid2">
+        <label>Klant
+          <input id="saleCustomer" list="customerList" placeholder="Typ klantnaam">
+          <datalist id="customerList"></datalist>
+        </label>
+        <label>Zoek product / code
+          <input id="productSearch" placeholder="Naam of code">
+        </label>
+      </div>
+      <div id="productResults" class="product-results"></div>
+    </div>
+
+    <div class="card">
+      <h2>Factuur</h2>
+      <div id="cartEmpty" class="muted">Nog geen producten toegevoegd.</div>
+      <div class="table-wrap">
+        <table id="cartTable" class="hidden">
+          <thead><tr><th>Code</th><th>Product</th><th>Aantal</th><th>Prijs</th><th>Totaal</th><th></th></tr></thead>
+          <tbody id="cartBody"></tbody>
+        </table>
+      </div>
+      <div class="totals">
+        <strong>Totaal: <span id="cartTotal">CG 0.00</span></strong>
+      </div>
+      <div class="actions">
+        <button id="saveSaleBtn">Verkoop opslaan</button>
+        <button id="printSaleBtn" class="secondary">Factuur printen</button>
+        <button id="clearCartBtn" class="danger ghost">Leegmaken</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-products" class="view">
+    <div class="card">
+      <h2>Product toevoegen / wijzigen</h2>
+      <input id="productId" type="hidden">
+      <div class="grid3">
+        <label>Productcode
+          <input id="pCode" placeholder="bijv. 78211">
+        </label>
+        <label>Naam product
+          <input id="pName" placeholder="Productnaam">
+        </label>
+        <label>Prijs (CG)
+          <input id="pPrice" type="number" min="0" step="0.01" placeholder="0.00">
+        </label>
+        <label>Voorraad
+          <input id="pStock" type="number" min="0" step="1" placeholder="0">
+        </label>
+        <label>Commissie %
+          <input id="pCommission" type="number" min="0" step="0.01" placeholder="0">
+        </label>
+      </div>
+      <div class="actions">
+        <button id="saveProductBtn">Product opslaan</button>
+        <button id="cancelProductBtn" class="secondary">Annuleren</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row-between">
+        <h2>Producten</h2>
+        <input id="productsFilter" class="small-search" placeholder="Zoeken">
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Code</th><th>Product</th><th>Prijs</th><th>Voorraad</th><th>Commissie</th><th>Acties</th></tr></thead>
+          <tbody id="productsBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-customers" class="view">
+    <div class="card">
+      <h2>Klant toevoegen</h2>
+      <div class="inline">
+        <input id="newCustomer" placeholder="Klantnaam">
+        <button id="addCustomerBtn">Toevoegen</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Klanten</h2>
+      <div id="customersList"></div>
+    </div>
+  </section>
+
+  <section id="view-history" class="view">
+    <div class="card">
+      <div class="row-between">
+        <h2>Verkopen</h2>
+        <input id="historyDate" type="date">
+      </div>
+      <div id="salesHistory"></div>
+    </div>
+  </section>
+
+  <section id="view-closing" class="view">
+    <div class="card">
+      <h2>Dag afsluiten</h2>
+      <label>Datum
+        <input id="closingDate" type="date">
+      </label>
+      <div id="closingSummary"></div>
+    </div>
+
+    <div class="card">
+      <h2>Kascontrole</h2>
+      <div class="grid2">
+        <label>Totale verkoop
+          <input id="closingSalesTotal" readonly>
+        </label>
+        <label>Geld geteld (CG)
+          <input id="countedCash" type="number" min="0" step="0.01" placeholder="0.00">
+        </label>
+        <label>Verschil
+          <input id="cashDifference" readonly>
+        </label>
+        <label>Totale commissie
+          <input id="closingCommission" readonly>
+        </label>
+      </div>
+      <div class="actions">
+        <button id="saveClosingBtn">Dagafsluiting opslaan</button>
+        <button id="printClosingBtn" class="secondary">Dagafsluiting printen</button>
+      </div>
+      <div id="closingSavedMsg" class="success-msg hidden"></div>
+    </div>
+  </section>
+</main>
+
+<div id="toast" class="toast hidden"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
