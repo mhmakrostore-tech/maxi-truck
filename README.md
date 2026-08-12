@@ -223,3 +223,11 @@ Voor synchronisatie tussen tablet en pc moet Firebase later gekoppeld worden.
 - Bij verkoop als CRT gebruikt Maxi-Truck automatisch de CRT-commissiebasis.
 - De verkoper hoeft tijdens verkoop niets aan te vinken.
 - Voor normale verkoop blijft **Commissie basis normaal (CG)** beschikbaar.
+
+
+## v28 – Aantal direct invoeren bij Verkoop
+- Elk product bij Verkoop heeft nu direct een **Aantal**-vak.
+- Vul bijvoorbeeld 5 in en druk EACH → 5 EACH wordt direct aan de factuur toegevoegd.
+- Vul 3 in en druk P12 → 3 P12 wordt toegevoegd.
+- Vul 2 in en druk CRT → 2 CRT wordt toegevoegd.
+- Voorraadcontrole houdt rekening met het ingevoerde aantal en de gekozen eenheid.

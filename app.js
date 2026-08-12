@@ -555,15 +555,24 @@ function renderProductSearch(){
   const q=document.getElementById('productSearch').value.toLowerCase().trim();
   let arr=products.slice().sort((a,b)=>a.name.localeCompare(b.name));
   if(q) arr=arr.filter(p=>p.name.toLowerCase().includes(q)||String(p.code).toLowerCase().includes(q));
-  document.getElementById('productResults').innerHTML=arr.map(p=>`<div class="product-card">${p.photo?`<img class="product-card-photo" src="${p.photo}" alt="">`:''}<strong>${esc(p.name)}</strong><div class="code">Code: ${esc(p.code)}</div><div><strong>${money(p.price)}</strong> <span class="muted">(EACH, excl. OB)</span></div>${p.p12Price!=null?`<div><strong>${money(p.p12Price)}</strong> <span class="muted">(P12, excl. OB)</span></div>`:''}${p.qtyPrice1Qty!=null?`<div><strong>${money(p.qtyPrice1Price)}</strong> <span class="muted">(${p.qtyPrice1Qty} EACH, excl. OB)</span></div>`:''}${p.qtyPrice2Qty!=null?`<div><strong>${money(p.qtyPrice2Price)}</strong> <span class="muted">(${p.qtyPrice2Qty} EACH, excl. OB)</span></div>`:''}${p.crtPrice!=null?`<div><strong>${money(p.crtPrice)}</strong> <span class="muted">(CRT ${p.crtPcs} PCS, excl. OB)</span>${p.crtFree?` <span class="free-badge">+ 1 FREE</span>`:''}</div>`:''}<div class="sale-choice"><button data-add-each="${p.id}" ${p.stock<=0?'disabled':''}>EACH</button>${p.p12Price!=null?`<button class="secondary" data-add-p12="${p.id}" ${p.stock<12?'disabled':''}>P12</button>`:''}${p.qtyPrice1Qty!=null?`<button class="secondary" data-add-deal1="${p.id}" ${p.stock<p.qtyPrice1Qty?'disabled':''}>${p.qtyPrice1Qty} EACH</button>`:''}${p.qtyPrice2Qty!=null?`<button class="secondary" data-add-deal2="${p.id}" ${p.stock<p.qtyPrice2Qty?'disabled':''}>${p.qtyPrice2Qty} EACH</button>`:''}${p.crtPrice!=null?`<button class="secondary" data-add-crt="${p.id}" ${p.stock<(p.crtPcs||1)?'disabled':''}>CRT</button>`:''}</div></div>`).join('')||'<div class="muted">Geen product gevonden.</div>';
-  document.querySelectorAll('[data-add-each]').forEach(b=>b.onclick=()=>addToCart(b.dataset.addEach,'EACH'));
-  document.querySelectorAll('[data-add-p12]').forEach(b=>b.onclick=()=>addToCart(b.dataset.addP12,'P12'));
-  document.querySelectorAll('[data-add-deal1]').forEach(b=>b.onclick=()=>addToCart(b.dataset.addDeal1,'DEAL1'));
-  document.querySelectorAll('[data-add-deal2]').forEach(b=>b.onclick=()=>addToCart(b.dataset.addDeal2,'DEAL2'));
-  document.querySelectorAll('[data-add-crt]').forEach(b=>b.onclick=()=>addToCart(b.dataset.addCrt,'CRT'));
+  document.getElementById('productResults').innerHTML=arr.map(p=>`<div class="product-card">${p.photo?`<img class="product-card-photo" src="${p.photo}" alt="">`:''}<strong>${esc(p.name)}</strong><div class="code">Code: ${esc(p.code)}</div><div><strong>${money(p.price)}</strong> <span class="muted">(EACH, excl. OB)</span></div>${p.p12Price!=null?`<div><strong>${money(p.p12Price)}</strong> <span class="muted">(P12, excl. OB)</span></div>`:''}${p.qtyPrice1Qty!=null?`<div><strong>${money(p.qtyPrice1Price)}</strong> <span class="muted">(${p.qtyPrice1Qty} EACH, excl. OB)</span></div>`:''}${p.qtyPrice2Qty!=null?`<div><strong>${money(p.qtyPrice2Price)}</strong> <span class="muted">(${p.qtyPrice2Qty} EACH, excl. OB)</span></div>`:''}${p.crtPrice!=null?`<div><strong>${money(p.crtPrice)}</strong> <span class="muted">(CRT ${p.crtPcs} PCS, excl. OB)</span>${p.crtFree?` <span class="free-badge">+ 1 FREE</span>`:''}</div>`:''}<div class="sale-choice">
+<input class="sale-qty-input" id="saleQty-${p.id}" type="number" min="1" step="1" value="1" inputmode="numeric" aria-label="Aantal">
+<button data-add-each="${p.id}" ${p.stock<=0?'disabled':''}>EACH</button>${p.p12Price!=null?`<button class="secondary" data-add-p12="${p.id}" ${p.stock<12?'disabled':''}>P12</button>`:''}${p.qtyPrice1Qty!=null?`<button class="secondary" data-add-deal1="${p.id}" ${p.stock<p.qtyPrice1Qty?'disabled':''}>${p.qtyPrice1Qty} EACH</button>`:''}${p.qtyPrice2Qty!=null?`<button class="secondary" data-add-deal2="${p.id}" ${p.stock<p.qtyPrice2Qty?'disabled':''}>${p.qtyPrice2Qty} EACH</button>`:''}${p.crtPrice!=null?`<button class="secondary" data-add-crt="${p.id}" ${p.stock<(p.crtPcs||1)?'disabled':''}>CRT</button>`:''}</div></div>`).join('')||'<div class="muted">Geen product gevonden.</div>';
+  
+  function qtyForProduct(id){
+    const el=document.getElementById('saleQty-'+id);
+    const n=Math.floor(Number(el?.value||1));
+    return Number.isFinite(n) && n>0 ? n : 1;
+  }
+
+document.querySelectorAll('[data-add-each]').forEach(b=>b.onclick=()=>addToCart(b.dataset.addEach,'EACH',qtyForProduct(b.dataset.addEach)));
+  document.querySelectorAll('[data-add-p12]').forEach(b=>b.onclick=()=>addToCart(b.dataset.addP12,'P12',qtyForProduct(b.dataset.addP12)));
+  document.querySelectorAll('[data-add-deal1]').forEach(b=>b.onclick=()=>addToCart(b.dataset.addDeal1,'DEAL1',qtyForProduct(b.dataset.addDeal1)));
+  document.querySelectorAll('[data-add-deal2]').forEach(b=>b.onclick=()=>addToCart(b.dataset.addDeal2,'DEAL2',qtyForProduct(b.dataset.addDeal2)));
+  document.querySelectorAll('[data-add-crt]').forEach(b=>b.onclick=()=>addToCart(b.dataset.addCrt,'CRT',qtyForProduct(b.dataset.addCrt)));
 }
 
-function addToCart(id,unit='EACH'){
+function addToCart(id,unit='EACH',requestedQty=1){
   const p=products.find(x=>x.id===id); if(!p)return;
 
   const isCrt=unit==='CRT';
@@ -591,20 +600,22 @@ function addToCart(id,unit='EACH'){
   }
 
   const stockUnitsPerSale=unitsPerSale+freePerCrt;
-  if(p.stock<stockUnitsPerSale){showToast('Niet genoeg voorraad.');return;}
+  const addQty=Math.max(1,Math.floor(Number(requestedQty)||1));
 
   const key=id+'_'+unit;
   const l=cart.find(x=>x.key===key);
+  const newQty=(l?Number(l.qty||0):0)+addQty;
+  const pcsNeeded=newQty*stockUnitsPerSale;
+  if(pcsNeeded>p.stock){showToast('Niet genoeg voorraad voor dit aantal.');return;}
+
   if(l){
-    const pcsNeeded=(l.qty+1)*stockUnitsPerSale;
-    if(pcsNeeded>p.stock){showToast('Niet genoeg voorraad.');return;}
-    l.qty++;
+    l.qty=newQty;
   }else{
     cart.push({
       key,productId:p.id,code:p.code,name:p.name,price:unitPrice,commission:p.commission||0,commissionBase:p.commissionBase||0,
       tpP12CommissionBase:p.tpP12CommissionBase||0,tpCrtCommissionBase:p.tpCrtCommissionBase||0,
       tpCommission:!!p.tpCommission,ob:p.ob||0,
-      qty:1,unit,label,unitsPerSale,freePerCrt,stockUnitsPerSale
+      qty:addQty,unit,label,unitsPerSale,freePerCrt,stockUnitsPerSale
     });
   }
   renderCart();

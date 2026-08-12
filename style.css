@@ -73,3 +73,16 @@
     min-width: 1180px;
   }
 }
+
+
+/* v28 - direct aantal invoeren bij Verkoop */
+.sale-qty-input{
+  width:72px;
+  min-width:72px;
+  padding:9px 7px;
+  border:1px solid #cbd5e1;
+  border-radius:8px;
+  font-size:16px;
+  text-align:center;
+  box-sizing:border-box;
+}
