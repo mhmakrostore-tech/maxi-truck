@@ -431,8 +431,8 @@ document.getElementById('removePhotoBtn').onclick=()=>{document.getElementById('
 
 document.getElementById('saveProductBtn').onclick=async()=>{
   if(currentRole!=='admin'){showToast('Alleen beheerder kan producten wijzigen.');return;}
-  const id=document.getElementById('productId').value;
-  const oldProduct=id?products.find(x=>x.id===id):null;
+  let id=document.getElementById('productId').value;
+  let oldProduct=id?products.find(x=>x.id===id):null;
   const data={
     code:document.getElementById('pCode').value.trim(),
     name:document.getElementById('pName').value.trim(),
@@ -452,10 +452,17 @@ document.getElementById('saveProductBtn').onclick=async()=>{
   };
   if(!data.code||!data.name||!Number.isFinite(data.price)||!Number.isFinite(data.stock)){showToast('Vul alle verplichte velden in.');return;}
   const sameCode=await lookupProductByCode(data.code,{showMessage:false});
-  if(sameCode && sameCode.id!==id){
-    fillProductForm(sameCode);
-    showToast('Deze productcode bestaat al. Bestaande gegevens zijn geladen.');
-    return;
+  // lookupProductByCode kan een bestaand product laden; gebruik daarna dat echte product-ID.
+  if(sameCode){
+    const formId=document.getElementById('productId').value;
+    if(!id && formId===sameCode.id){
+      id=sameCode.id;
+      oldProduct=products.find(x=>x.id===id) || sameCode;
+    } else if(sameCode.id!==id){
+      fillProductForm(sameCode);
+      showToast('Deze productcode bestaat al. Bestaande gegevens zijn geladen.');
+      return;
+    }
   }
   if(data.crtPrice!==null && (!Number.isFinite(data.crtPrice) || !Number.isFinite(data.crtPcs) || data.crtPcs<1)){
     showToast('Vul bij CRT ook het aantal PCS per CRT in.');return;
@@ -465,7 +472,7 @@ document.getElementById('saveProductBtn').onclick=async()=>{
   if(data.qtyPrice1Qty!==null && data.qtyPrice1Qty<2){showToast('Aantalprijs 1 moet minimaal 2 zijn.');return;}
   if(data.qtyPrice2Qty!==null && data.qtyPrice2Qty<2){showToast('Aantalprijs 2 moet minimaal 2 zijn.');return;}
   if(data.crtPrice===null){data.crtPcs=null;data.crtFree=false;}
-  const effectiveId=document.getElementById('productId').value || id;
+  const effectiveId=id || document.getElementById('productId').value;
   if(effectiveId){
     await setDoc(doc(db,'products',effectiveId),data);
     products=products.map(p=>p.id===effectiveId?{...p,id:effectiveId,...data}:p);
@@ -499,7 +506,11 @@ document.getElementById('saveProductBtn').onclick=async()=>{
       });
     }
   }
-  resetProductForm(); renderProducts(); renderProductSearch(); showToast('Product opgeslagen.');
+  await loadProducts();
+  resetProductForm();
+  renderProducts();
+  renderProductSearch();
+  showToast('Product opgeslagen.');
 };
 document.getElementById('cancelProductBtn').onclick=resetProductForm;
 document.getElementById('productsFilter').addEventListener('input',renderProducts);

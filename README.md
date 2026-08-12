@@ -188,3 +188,10 @@ Voor synchronisatie tussen tablet en pc moet Firebase later gekoppeld worden.
 - Normale producten: commissie = eigen commissiebasis × commissie % × aantal verkocht.
 - TP-producten: bij P12 wordt gerekend over P12-prijs; bij CRT over CRT-prijs.
 - Dag afsluiten telt de berekende commissies van alle producten op.
+
+
+## v24 – Commissie basis opslaan herstel
+- Hersteld dat **Commissie basis (CG)** na opslaan soms weer leeg was.
+- Bij een bestaande productcode wordt nu eerst het echte product-ID gekoppeld voordat wordt opgeslagen.
+- Na opslaan worden de producten opnieuw uit Firestore geladen, zodat het opgeslagen commissiebasisbedrag direct zichtbaar blijft.
+- Commissiebasis blijft per product apart.
