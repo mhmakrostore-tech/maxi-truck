@@ -203,3 +203,13 @@ Voor synchronisatie tussen tablet en pc moet Firebase later gekoppeld worden.
 - Bij opnieuw openen van hetzelfde product wordt het opgeslagen bedrag terug geladen.
 - Nieuwe producten starten met een leeg commissiebasisveld.
 - TP-producten blijven automatisch P12- of CRT-prijs als commissiebasis gebruiken, afhankelijk van wat op de bon is verkocht.
+
+
+## v26 – TP commissie op één EACH-basis
+- Je voert per product maar **één Commissiebasis (CG) per EACH** in.
+- Alleen als **TP: commissie op verkochte P12 / CRT** is aangevinkt, rekent Maxi-Truck automatisch:
+  - P12 → commissiebasis × 12 × commissie %
+  - CRT → commissiebasis × PCS per CRT × commissie %
+- Bij meerdere P12/CRT wordt ook met het verkochte aantal vermenigvuldigd.
+- Als TP niet is aangevinkt, blijft de normale vaste commissiebasis per verkochte eenheid gelden.
+- De verkoper hoeft tijdens verkoop niets aan te vinken; de instelling wordt éénmalig bij het product opgeslagen.

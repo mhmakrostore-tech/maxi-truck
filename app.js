@@ -55,13 +55,20 @@ function commissionForLine(line){
   const pct=Number(line.commission||0)/100;
   if(pct<=0) return 0;
 
-  // TP products: if sold as P12 or CRT, calculate on that sold unit price.
+  const basePerEach=Number(line.commissionBase||0);
+  const qty=Number(line.qty||0);
+
+  // Alleen als TP bij het product is aangevinkt:
+  // P12 = basis per EACH × 12
+  // CRT = basis per EACH × PCS per CRT
   if(line.tpCommission && (line.unit==='P12' || line.unit==='CRT')){
-    return Number(line.price||0) * Number(line.qty||0) * pct;
+    const pcsPerUnit=Number(line.unitsPerSale||1);
+    return basePerEach * pcsPerUnit * qty * pct;
   }
 
-  // All other products: use this product's own fixed commission basis.
-  return Number(line.commissionBase||0) * Number(line.qty||0) * pct;
+  // Normale producten (of TP verkocht als EACH):
+  // vaste commissiebasis per verkochte eenheid.
+  return basePerEach * qty * pct;
 }
 
 function calcLine(line){
@@ -661,7 +668,9 @@ async function saveCurrentSale({printAfter=false}={}){
       freeQty:(l.unit==='CRT'?Number(l.qty||0)*Number(l.freePerCrt||0):0),
       stockPcs:Number(l.qty||0)*Number(l.stockUnitsPerSale||l.unitsPerSale||1),
       subtotal:c.subtotal,obAmount:c.obAmount,total:c.total,
-      commissionBaseUsed:(l.tpCommission && (l.unit==='P12' || l.unit==='CRT')) ? Number(l.price||0) : Number(l.commissionBase||0),
+      commissionBaseUsed:(l.tpCommission && (l.unit==='P12' || l.unit==='CRT'))
+        ? Number(l.commissionBase||0) * Number(l.unitsPerSale||1)
+        : Number(l.commissionBase||0),
       commissionAmount:commissionForLine(l)
     };
   });
