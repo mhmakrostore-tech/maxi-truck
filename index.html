@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#111827">
   <title>Maxi-Truck</title>
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css?v=21">
+  <link rel="stylesheet" href="style.css?v=22">
 </head>
 <body>
 
@@ -138,6 +138,13 @@
         <label>Commissie %
           <input id="pCommission" type="number" min="0" step="0.01" placeholder="0">
         </label>
+        <label>Commissie basis (CG)
+          <input id="pCommissionBase" type="number" min="0" step="0.01" placeholder="Bedrag waarover % wordt berekend">
+        </label>
+        <label class="checkbox-label">
+          <input id="pTpCommission" type="checkbox">
+          TP: commissie op verkochte P12 / CRT
+        </label>
         <label>OB %
           <input id="pOb" type="number" min="0" step="0.01" placeholder="0">
         </label>
@@ -157,7 +164,7 @@
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Foto</th><th>Code</th><th>Product</th><th>EACH</th><th>P12</th><th>Aantalprijs 1</th><th>Aantalprijs 2</th><th>CRT</th><th>PCS/CRT</th><th>FREE</th><th>Voorraad</th><th>Commissie</th><th>OB</th><th>Acties</th></tr></thead>
+          <thead><tr><th>Foto</th><th>Code</th><th>Product</th><th>EACH</th><th>P12</th><th>Aantalprijs 1</th><th>Aantalprijs 2</th><th>CRT</th><th>PCS/CRT</th><th>FREE</th><th>Voorraad</th><th>Commissie %</th><th>Commissie basis</th><th>TP basis</th><th>OB</th><th>Acties</th></tr></thead>
           <tbody id="productsBody"></tbody>
         </table>
       </div>
@@ -267,8 +274,8 @@
 <div id="toast" class="toast hidden"></div>
 
 
-<script type="module" src="firebase-app.js?v=21"></script>
+<script type="module" src="firebase-app.js?v=22"></script>
 
-<script type="module" src="app.js?v=21"></script>
+<script type="module" src="app.js?v=22"></script>
 </body>
 </html>

@@ -168,3 +168,14 @@ Voor synchronisatie tussen tablet en pc moet Firebase later gekoppeld worden.
 ## v21 – Zoekveld Verkoop automatisch leeg
 - Nadat een product bij Verkoop is gekozen/toegevoegd, wordt het zoekveld automatisch leeggemaakt.
 - De cursor gaat terug naar het zoekveld zodat direct het volgende product gezocht kan worden.
+
+
+## v22 – Commissie op vast bedrag / TP per eenheid
+- Nieuw veld **Commissie basis (CG)** per product.
+- Normale producten: commissie = Commissie basis × Commissie % × verkochte hoeveelheid.
+- Nieuw vinkje **TP: commissie op verkochte P12 / CRT**.
+- Bij TP-producten:
+  - verkoop als P12 → commissie wordt berekend over de P12-prijs.
+  - verkoop als CRT → commissie wordt berekend over de CRT-prijs.
+  - andere verkoopvormen gebruiken de vaste Commissie basis.
+- Commissie blijft alleen zichtbaar/berekend voor beheerder en Dag afsluiten; niet op de invoice.
