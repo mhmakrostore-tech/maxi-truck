@@ -158,3 +158,9 @@ Voor synchronisatie tussen tablet en pc moet Firebase later gekoppeld worden.
 - Invoice toont P12 als verkoopvorm.
 - OB en commissie worden berekend op de P12-prijs maar commissie blijft alleen zichtbaar bij Dag afsluiten.
 - Een wijziging van de P12-prijs kan ook in de prijswijzigingsmelding verschijnen.
+
+
+## v20 – Brede Producten-pagina
+- Producten gebruikt op pc bijna de volledige schermbreedte.
+- Rechterkolommen en actieknoppen zijn beter zichtbaar.
+- Als het scherm toch te smal is, kan de producttabel horizontaal schuiven zonder de pagina af te snijden.
