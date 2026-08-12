@@ -139,3 +139,11 @@ Voor synchronisatie tussen tablet en pc moet Firebase later gekoppeld worden.
 - Status onder de code: **Code zoeken...**, **Bestaand product geladen**, of **Nieuwe productcode**.
 - Zoeken probeert zowel tekstcodes als oude numeriek opgeslagen codes.
 - Duplicaat opslaan blijft geblokkeerd.
+
+
+## v18 – Alle producten bij Verkoop
+- Bij **Producten** en **Verkoop** worden nu alle aangemaakte producten geladen.
+- Bij Verkoop was eerder alleen een deel zichtbaar; de limiet van 8 is verwijderd.
+- In de verkoopcatalogus staat nu eerst de productnaam en daaronder de code.
+- Alfabetische volgorde A–Z blijft behouden.
+- Zoeken op productnaam of code blijft werken.
