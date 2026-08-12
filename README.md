@@ -147,3 +147,14 @@ Voor synchronisatie tussen tablet en pc moet Firebase later gekoppeld worden.
 - In de verkoopcatalogus staat nu eerst de productnaam en daaronder de code.
 - Alfabetische volgorde A–Z blijft behouden.
 - Zoeken op productnaam of code blijft werken.
+
+
+## v19 – P12
+- Beheerder kan per product een aparte **P12-prijs** invoeren.
+- P12 betekent 12 stuks.
+- Als P12-prijs leeg is, wordt P12 niet getoond in Verkoop.
+- Als P12 is ingevuld, verschijnt bij Verkoop een aparte **P12** knop.
+- 1 P12 trekt automatisch 12 stuks van de voorraad af.
+- Invoice toont P12 als verkoopvorm.
+- OB en commissie worden berekend op de P12-prijs maar commissie blijft alleen zichtbaar bij Dag afsluiten.
+- Een wijziging van de P12-prijs kan ook in de prijswijzigingsmelding verschijnen.

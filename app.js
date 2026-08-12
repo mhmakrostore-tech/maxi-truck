@@ -79,6 +79,7 @@ async function showPendingPriceChanges(){
       <div class="price-change-item">
         <div class="price-change-name">${esc(x.productName||'Product')}</div>
         ${x.eachChanged?`<div class="price-change-price">Nieuwe EACH prijs: ${money(x.newEachPrice)}</div>`:''}
+        ${x.p12Changed?`<div class="price-change-price">Nieuwe P12 prijs: ${money(x.newP12Price)}</div>`:''}
         ${x.crtChanged?`<div class="price-change-price">Nieuwe CRT prijs: ${money(x.newCrtPrice)}</div>`:''}
       </div>
     `).join('');
@@ -303,6 +304,7 @@ function fillProductForm(p){
   document.getElementById('pCode').value=p.code||'';
   document.getElementById('pName').value=p.name||'';
   document.getElementById('pPrice').value=p.price ?? '';
+  document.getElementById('pP12Price').value=p.p12Price ?? '';
   document.getElementById('pQtyPrice1Qty').value=p.qtyPrice1Qty ?? '';
   document.getElementById('pQtyPrice1Price').value=p.qtyPrice1Price ?? '';
   document.getElementById('pQtyPrice2Qty').value=p.qtyPrice2Qty ?? '';
@@ -400,7 +402,7 @@ document.getElementById('pCode').addEventListener('blur',()=>{
 });
 
 function resetProductForm(){
-  ['productId','pCode','pName','pPrice','pQtyPrice1Qty','pQtyPrice1Price','pQtyPrice2Qty','pQtyPrice2Price','pCrtPrice','pCrtPcs','pStock','pCommission','pOb'].forEach(id=>document.getElementById(id).value='');
+  ['productId','pCode','pName','pPrice','pP12Price','pQtyPrice1Qty','pQtyPrice1Price','pQtyPrice2Qty','pQtyPrice2Price','pCrtPrice','pCrtPcs','pStock','pCommission','pOb'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('pPhoto').value='';
   document.getElementById('pCrtFree').checked=false;
   setPhotoPreview('');
@@ -419,6 +421,7 @@ document.getElementById('saveProductBtn').onclick=async()=>{
     code:document.getElementById('pCode').value.trim(),
     name:document.getElementById('pName').value.trim(),
     price:Number(document.getElementById('pPrice').value),
+    p12Price:document.getElementById('pP12Price').value===''?null:Number(document.getElementById('pP12Price').value),
     qtyPrice1Qty:document.getElementById('pQtyPrice1Qty').value===''?null:Number(document.getElementById('pQtyPrice1Qty').value),
     qtyPrice1Price:document.getElementById('pQtyPrice1Price').value===''?null:Number(document.getElementById('pQtyPrice1Price').value),
     qtyPrice2Qty:document.getElementById('pQtyPrice2Qty').value===''?null:Number(document.getElementById('pQtyPrice2Qty').value),
@@ -459,14 +462,20 @@ document.getElementById('saveProductBtn').onclick=async()=>{
     const oldCrt=oldProduct.crtPrice==null?null:Number(oldProduct.crtPrice);
     const newCrt=data.crtPrice==null?null:Number(data.crtPrice);
     const crtChanged=oldCrt!==newCrt;
-    if(eachChanged||crtChanged){
+    const oldP12=oldProduct.p12Price==null?null:Number(oldProduct.p12Price);
+    const newP12=data.p12Price==null?null:Number(data.p12Price);
+    const p12Changed=oldP12!==newP12;
+    if(eachChanged||crtChanged||p12Changed){
       await addDoc(collection(db,'priceChanges'),{
         productId:effectiveId,
         productName:data.name,
         eachChanged,
         crtChanged,
+        p12Changed,
         oldEachPrice:Number(oldProduct.price||0),
         newEachPrice:Number(data.price||0),
+        oldP12Price:oldP12,
+        newP12Price:newP12,
         oldCrtPrice:oldCrt,
         newCrtPrice:newCrt,
         changedAt:new Date().toISOString(),
@@ -484,7 +493,7 @@ function renderProducts(){
   let arr=products.slice().sort((a,b)=>a.name.localeCompare(b.name));
   if(q) arr=arr.filter(p=>p.name.toLowerCase().includes(q)||String(p.code).toLowerCase().includes(q));
   const body=document.getElementById('productsBody');
-  body.innerHTML=arr.length?arr.map(p=>`<tr><td>${p.photo?`<img class="product-thumb" src="${p.photo}" alt="">`:''}</td><td><strong>${esc(p.code)}</strong></td><td>${esc(p.name)}</td><td>${money(p.price)}</td><td>${p.qtyPrice1Qty!=null?`${p.qtyPrice1Qty} = ${money(p.qtyPrice1Price)}`:'-'}</td><td>${p.qtyPrice2Qty!=null?`${p.qtyPrice2Qty} = ${money(p.qtyPrice2Price)}`:'-'}</td><td>${p.crtPrice!=null?money(p.crtPrice):'-'}</td><td>${p.crtPrice!=null?(p.crtPcs||'-'):'-'}</td><td>${p.crtFree?'1 FREE':'-'}</td><td>${p.stock}</td><td>${Number(p.commission||0).toFixed(2)}%</td><td>${Number(p.ob||0).toFixed(2)}%</td><td>${currentRole==='admin'?`<button class="icon-btn" data-edit="${p.id}">Bewerken</button> <button class="danger icon-btn" data-delete="${p.id}">Verwijderen</button>`:''}</td></tr>`).join(''):'<tr><td colspan="13" class="muted">Geen producten.</td></tr>';
+  body.innerHTML=arr.length?arr.map(p=>`<tr><td>${p.photo?`<img class="product-thumb" src="${p.photo}" alt="">`:''}</td><td><strong>${esc(p.code)}</strong></td><td>${esc(p.name)}</td><td>${money(p.price)}</td><td>${p.p12Price!=null?money(p.p12Price):'-'}</td><td>${p.qtyPrice1Qty!=null?`${p.qtyPrice1Qty} = ${money(p.qtyPrice1Price)}`:'-'}</td><td>${p.qtyPrice2Qty!=null?`${p.qtyPrice2Qty} = ${money(p.qtyPrice2Price)}`:'-'}</td><td>${p.crtPrice!=null?money(p.crtPrice):'-'}</td><td>${p.crtPrice!=null?(p.crtPcs||'-'):'-'}</td><td>${p.crtFree?'1 FREE':'-'}</td><td>${p.stock}</td><td>${Number(p.commission||0).toFixed(2)}%</td><td>${Number(p.ob||0).toFixed(2)}%</td><td>${currentRole==='admin'?`<button class="icon-btn" data-edit="${p.id}">Bewerken</button> <button class="danger icon-btn" data-delete="${p.id}">Verwijderen</button>`:''}</td></tr>`).join(''):'<tr><td colspan="14" class="muted">Geen producten.</td></tr>';
   body.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{
     const p=products.find(x=>x.id===b.dataset.edit); if(!p)return;
     fillProductForm(p);
@@ -503,8 +512,9 @@ function renderProductSearch(){
   const q=document.getElementById('productSearch').value.toLowerCase().trim();
   let arr=products.slice().sort((a,b)=>a.name.localeCompare(b.name));
   if(q) arr=arr.filter(p=>p.name.toLowerCase().includes(q)||String(p.code).toLowerCase().includes(q));
-  document.getElementById('productResults').innerHTML=arr.map(p=>`<div class="product-card">${p.photo?`<img class="product-card-photo" src="${p.photo}" alt="">`:''}<strong>${esc(p.name)}</strong><div class="code">Code: ${esc(p.code)}</div><div><strong>${money(p.price)}</strong> <span class="muted">(EACH, excl. OB)</span></div>${p.qtyPrice1Qty!=null?`<div><strong>${money(p.qtyPrice1Price)}</strong> <span class="muted">(${p.qtyPrice1Qty} EACH, excl. OB)</span></div>`:''}${p.qtyPrice2Qty!=null?`<div><strong>${money(p.qtyPrice2Price)}</strong> <span class="muted">(${p.qtyPrice2Qty} EACH, excl. OB)</span></div>`:''}${p.crtPrice!=null?`<div><strong>${money(p.crtPrice)}</strong> <span class="muted">(CRT ${p.crtPcs} PCS, excl. OB)</span>${p.crtFree?` <span class="free-badge">+ 1 FREE</span>`:''}</div>`:''}<div class="sale-choice"><button data-add-each="${p.id}" ${p.stock<=0?'disabled':''}>EACH</button>${p.qtyPrice1Qty!=null?`<button class="secondary" data-add-deal1="${p.id}" ${p.stock<p.qtyPrice1Qty?'disabled':''}>${p.qtyPrice1Qty} EACH</button>`:''}${p.qtyPrice2Qty!=null?`<button class="secondary" data-add-deal2="${p.id}" ${p.stock<p.qtyPrice2Qty?'disabled':''}>${p.qtyPrice2Qty} EACH</button>`:''}${p.crtPrice!=null?`<button class="secondary" data-add-crt="${p.id}" ${p.stock<(p.crtPcs||1)?'disabled':''}>CRT</button>`:''}</div></div>`).join('')||'<div class="muted">Geen product gevonden.</div>';
+  document.getElementById('productResults').innerHTML=arr.map(p=>`<div class="product-card">${p.photo?`<img class="product-card-photo" src="${p.photo}" alt="">`:''}<strong>${esc(p.name)}</strong><div class="code">Code: ${esc(p.code)}</div><div><strong>${money(p.price)}</strong> <span class="muted">(EACH, excl. OB)</span></div>${p.p12Price!=null?`<div><strong>${money(p.p12Price)}</strong> <span class="muted">(P12, excl. OB)</span></div>`:''}${p.qtyPrice1Qty!=null?`<div><strong>${money(p.qtyPrice1Price)}</strong> <span class="muted">(${p.qtyPrice1Qty} EACH, excl. OB)</span></div>`:''}${p.qtyPrice2Qty!=null?`<div><strong>${money(p.qtyPrice2Price)}</strong> <span class="muted">(${p.qtyPrice2Qty} EACH, excl. OB)</span></div>`:''}${p.crtPrice!=null?`<div><strong>${money(p.crtPrice)}</strong> <span class="muted">(CRT ${p.crtPcs} PCS, excl. OB)</span>${p.crtFree?` <span class="free-badge">+ 1 FREE</span>`:''}</div>`:''}<div class="sale-choice"><button data-add-each="${p.id}" ${p.stock<=0?'disabled':''}>EACH</button>${p.p12Price!=null?`<button class="secondary" data-add-p12="${p.id}" ${p.stock<12?'disabled':''}>P12</button>`:''}${p.qtyPrice1Qty!=null?`<button class="secondary" data-add-deal1="${p.id}" ${p.stock<p.qtyPrice1Qty?'disabled':''}>${p.qtyPrice1Qty} EACH</button>`:''}${p.qtyPrice2Qty!=null?`<button class="secondary" data-add-deal2="${p.id}" ${p.stock<p.qtyPrice2Qty?'disabled':''}>${p.qtyPrice2Qty} EACH</button>`:''}${p.crtPrice!=null?`<button class="secondary" data-add-crt="${p.id}" ${p.stock<(p.crtPcs||1)?'disabled':''}>CRT</button>`:''}</div></div>`).join('')||'<div class="muted">Geen product gevonden.</div>';
   document.querySelectorAll('[data-add-each]').forEach(b=>b.onclick=()=>addToCart(b.dataset.addEach,'EACH'));
+  document.querySelectorAll('[data-add-p12]').forEach(b=>b.onclick=()=>addToCart(b.dataset.addP12,'P12'));
   document.querySelectorAll('[data-add-deal1]').forEach(b=>b.onclick=()=>addToCart(b.dataset.addDeal1,'DEAL1'));
   document.querySelectorAll('[data-add-deal2]').forEach(b=>b.onclick=()=>addToCart(b.dataset.addDeal2,'DEAL2'));
   document.querySelectorAll('[data-add-crt]').forEach(b=>b.onclick=()=>addToCart(b.dataset.addCrt,'CRT'));
@@ -514,12 +524,16 @@ function addToCart(id,unit='EACH'){
   const p=products.find(x=>x.id===id); if(!p)return;
 
   const isCrt=unit==='CRT';
+  const isP12=unit==='P12';
   const isDeal1=unit==='DEAL1';
   const isDeal2=unit==='DEAL2';
 
   let unitsPerSale=1, unitPrice=Number(p.price), freePerCrt=0, label='EACH';
 
-  if(isDeal1){
+  if(isP12){
+    if(p.p12Price==null){showToast('P12-prijs is niet ingesteld.');return;}
+    unitsPerSale=12; unitPrice=Number(p.p12Price); label='P12';
+  } else if(isDeal1){
     if(p.qtyPrice1Qty==null||p.qtyPrice1Price==null){showToast('Aantalprijs 1 is niet ingesteld.');return;}
     unitsPerSale=Number(p.qtyPrice1Qty); unitPrice=Number(p.qtyPrice1Price); label=`${unitsPerSale} EACH`;
   } else if(isDeal2){

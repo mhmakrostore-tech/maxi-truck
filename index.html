@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#111827">
   <title>Maxi-Truck</title>
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css?v=18">
+  <link rel="stylesheet" href="style.css?v=19">
 </head>
 <body>
 
@@ -107,6 +107,9 @@
         <label>Prijs EACH (CG)
           <input id="pPrice" type="number" min="0" step="0.01" placeholder="0.00">
         </label>
+        <label>Prijs P12 (CG)
+          <input id="pP12Price" type="number" min="0" step="0.01" placeholder="Leeg = geen P12">
+        </label>
         <label>Aantal prijs 1
           <input id="pQtyPrice1Qty" type="number" min="2" step="1" placeholder="bijv. 4">
         </label>
@@ -154,7 +157,7 @@
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Foto</th><th>Code</th><th>Product</th><th>EACH</th><th>Aantalprijs 1</th><th>Aantalprijs 2</th><th>CRT</th><th>PCS/CRT</th><th>FREE</th><th>Voorraad</th><th>Commissie</th><th>OB</th><th>Acties</th></tr></thead>
+          <thead><tr><th>Foto</th><th>Code</th><th>Product</th><th>EACH</th><th>P12</th><th>Aantalprijs 1</th><th>Aantalprijs 2</th><th>CRT</th><th>PCS/CRT</th><th>FREE</th><th>Voorraad</th><th>Commissie</th><th>OB</th><th>Acties</th></tr></thead>
           <tbody id="productsBody"></tbody>
         </table>
       </div>
@@ -264,8 +267,8 @@
 <div id="toast" class="toast hidden"></div>
 
 
-<script type="module" src="firebase-app.js?v=18"></script>
+<script type="module" src="firebase-app.js?v=19"></script>
 
-<script type="module" src="app.js?v=18"></script>
+<script type="module" src="app.js?v=19"></script>
 </body>
 </html>
