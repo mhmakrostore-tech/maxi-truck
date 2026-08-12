@@ -296,6 +296,51 @@ function renderCustomers(){
   });
 }
 
+
+function fillProductForm(p){
+  if(!p) return;
+  document.getElementById('productId').value=p.id;
+  document.getElementById('pCode').value=p.code||'';
+  document.getElementById('pName').value=p.name||'';
+  document.getElementById('pPrice').value=p.price ?? '';
+  document.getElementById('pQtyPrice1Qty').value=p.qtyPrice1Qty ?? '';
+  document.getElementById('pQtyPrice1Price').value=p.qtyPrice1Price ?? '';
+  document.getElementById('pQtyPrice2Qty').value=p.qtyPrice2Qty ?? '';
+  document.getElementById('pQtyPrice2Price').value=p.qtyPrice2Price ?? '';
+  document.getElementById('pCrtPrice').value=p.crtPrice ?? '';
+  document.getElementById('pCrtPcs').value=p.crtPcs ?? '';
+  document.getElementById('pCrtFree').checked=!!p.crtFree;
+  document.getElementById('pStock').value=p.stock ?? 0;
+  document.getElementById('pCommission').value=p.commission ?? 0;
+  document.getElementById('pOb').value=p.ob ?? 0;
+  setPhotoPreview(p.photo||'');
+}
+
+function findProductByCode(code){
+  const c=String(code||'').trim().toLowerCase();
+  if(!c) return null;
+  return products.find(p=>String(p.code||'').trim().toLowerCase()===c) || null;
+}
+
+let codeLookupTimer=null;
+document.getElementById('pCode').addEventListener('input',()=>{
+  clearTimeout(codeLookupTimer);
+  codeLookupTimer=setTimeout(()=>{
+    const code=document.getElementById('pCode').value.trim();
+    if(!code) return;
+    const existing=findProductByCode(code);
+    if(existing){
+      fillProductForm(existing);
+      showToast('Deze productcode bestaat al. Gegevens zijn geladen.');
+    }
+  },250);
+});
+
+document.getElementById('pCode').addEventListener('blur',()=>{
+  const existing=findProductByCode(document.getElementById('pCode').value);
+  if(existing) fillProductForm(existing);
+});
+
 function resetProductForm(){
   ['productId','pCode','pName','pPrice','pQtyPrice1Qty','pQtyPrice1Price','pQtyPrice2Qty','pQtyPrice2Price','pCrtPrice','pCrtPcs','pStock','pCommission','pOb'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('pPhoto').value='';
@@ -329,6 +374,12 @@ document.getElementById('saveProductBtn').onclick=async()=>{
     photo:currentProductPhoto||''
   };
   if(!data.code||!data.name||!Number.isFinite(data.price)||!Number.isFinite(data.stock)){showToast('Vul alle verplichte velden in.');return;}
+  const sameCode=findProductByCode(data.code);
+  if(sameCode && sameCode.id!==id){
+    fillProductForm(sameCode);
+    showToast('Deze productcode bestaat al. Bestaande gegevens zijn geladen.');
+    return;
+  }
   if(data.crtPrice!==null && (!Number.isFinite(data.crtPrice) || !Number.isFinite(data.crtPcs) || data.crtPcs<1)){
     showToast('Vul bij CRT ook het aantal PCS per CRT in.');return;
   }
@@ -377,21 +428,7 @@ function renderProducts(){
   body.innerHTML=arr.length?arr.map(p=>`<tr><td>${p.photo?`<img class="product-thumb" src="${p.photo}" alt="">`:''}</td><td><strong>${esc(p.code)}</strong></td><td>${esc(p.name)}</td><td>${money(p.price)}</td><td>${p.qtyPrice1Qty!=null?`${p.qtyPrice1Qty} = ${money(p.qtyPrice1Price)}`:'-'}</td><td>${p.qtyPrice2Qty!=null?`${p.qtyPrice2Qty} = ${money(p.qtyPrice2Price)}`:'-'}</td><td>${p.crtPrice!=null?money(p.crtPrice):'-'}</td><td>${p.crtPrice!=null?(p.crtPcs||'-'):'-'}</td><td>${p.crtFree?'1 FREE':'-'}</td><td>${p.stock}</td><td>${Number(p.commission||0).toFixed(2)}%</td><td>${Number(p.ob||0).toFixed(2)}%</td><td>${currentRole==='admin'?`<button class="icon-btn" data-edit="${p.id}">Bewerken</button> <button class="danger icon-btn" data-delete="${p.id}">Verwijderen</button>`:''}</td></tr>`).join(''):'<tr><td colspan="13" class="muted">Geen producten.</td></tr>';
   body.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{
     const p=products.find(x=>x.id===b.dataset.edit); if(!p)return;
-    document.getElementById('productId').value=p.id;
-    document.getElementById('pCode').value=p.code;
-    document.getElementById('pName').value=p.name;
-    document.getElementById('pPrice').value=p.price;
-    document.getElementById('pQtyPrice1Qty').value=p.qtyPrice1Qty ?? '';
-    document.getElementById('pQtyPrice1Price').value=p.qtyPrice1Price ?? '';
-    document.getElementById('pQtyPrice2Qty').value=p.qtyPrice2Qty ?? '';
-    document.getElementById('pQtyPrice2Price').value=p.qtyPrice2Price ?? '';
-    document.getElementById('pCrtPrice').value=p.crtPrice ?? '';
-    document.getElementById('pCrtPcs').value=p.crtPcs ?? '';
-    document.getElementById('pCrtFree').checked=!!p.crtFree;
-    document.getElementById('pStock').value=p.stock;
-    document.getElementById('pCommission').value=p.commission||0;
-    document.getElementById('pOb').value=p.ob||0;
-    setPhotoPreview(p.photo||'');
+    fillProductForm(p);
     window.scrollTo({top:0,behavior:'smooth'});
   });
   body.querySelectorAll('[data-delete]').forEach(b=>b.onclick=async()=>{

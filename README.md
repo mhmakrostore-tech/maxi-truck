@@ -124,3 +124,10 @@ Voor synchronisatie tussen tablet en pc moet Firebase later gekoppeld worden.
 - Voorbeeld: 4 EACH = CG 5.00 en 8 EACH = CG 9.00.
 - In de verkoop verschijnen extra knoppen alleen als die aantalprijzen zijn ingevuld.
 - Voorraad wordt met het juiste aantal EACH verminderd.
+
+
+## v16 – Unieke productcode + automatisch laden
+- Een productcode kan niet dubbel worden opgeslagen.
+- Zodra de beheerder een bestaande code invoert, worden automatisch de bestaande productgegevens geladen.
+- Dit laadt naam, foto, EACH-prijs, aantalprijzen, CRT, FREE, voorraad, commissie en OB.
+- Als je probeert op te slaan met een code die al bij een ander product hoort, wordt opslaan geblokkeerd en opent het bestaande product.
