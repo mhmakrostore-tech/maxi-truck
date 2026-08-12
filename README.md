@@ -264,3 +264,11 @@ Voor synchronisatie tussen tablet en pc moet Firebase later gekoppeld worden.
 - Datum en tijd staan bovenaan de geprinte lijst.
 - Alleen beheerder kan deze lijst printen.
 - Als er een zoekfilter actief is, wordt alleen de gefilterde lijst geprint.
+
+
+## v33 – Code verbergen bij Verkoop
+- In de categorie **Verkoop** wordt de productcode niet meer zichtbaar getoond.
+- Zoeken op productcode blijft wel werken.
+- De beheerder blijft de productcode zien bij **Producten**.
+- Op de geprinte invoice blijft de productcode zichtbaar.
+- Op de geprinte voorraadlijst blijft de productcode zichtbaar.
