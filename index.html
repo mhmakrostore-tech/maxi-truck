@@ -41,6 +41,7 @@
 <nav class="tabs hidden" id="appTabs">
   <button data-view="sale" class="active">Verkoop</button>
   <button data-view="products">Producten</button>
+  <button data-view="restock">Voorraad aanvullen</button>
   <button data-view="customers">Klanten</button>
   <button data-view="history">Verkopen</button>
   <button data-view="closing">Dag afsluiten</button>
@@ -131,6 +132,39 @@
           <thead><tr><th>Foto</th><th>Code</th><th>Product</th><th>Prijs excl. OB</th><th>Voorraad</th><th>Commissie</th><th>OB</th><th>Acties</th></tr></thead>
           <tbody id="productsBody"></tbody>
         </table>
+      </div>
+    </div>
+  </section>
+
+
+  <section id="view-restock" class="view">
+    <div class="card">
+      <div class="row-between">
+        <div>
+          <h2>Voorraad aanvullen</h2>
+          <p class="muted">Vul alleen in wat vandaag wordt bijgevoegd. Lege velden veranderen niets.</p>
+        </div>
+        <input id="restockFilter" class="small-search" placeholder="Zoek product of code">
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Product</th>
+              <th>Huidige voorraad</th>
+              <th>Bijvullen</th>
+              <th>Nieuwe voorraad</th>
+            </tr>
+          </thead>
+          <tbody id="restockBody"></tbody>
+        </table>
+      </div>
+
+      <div class="actions">
+        <button id="saveRestockBtn">Alles opslaan</button>
+        <button id="clearRestockBtn" class="secondary">Invoer wissen</button>
       </div>
     </div>
   </section>

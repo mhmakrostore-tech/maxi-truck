@@ -117,7 +117,10 @@ function openView(view){
 }
 
 document.querySelectorAll('.tabs button').forEach(btn=>{
-  btn.addEventListener('click',()=>openView(btn.dataset.view));
+  btn.addEventListener('click',()=>{
+    openView(btn.dataset.view);
+    if(btn.dataset.view==='restock') renderRestock();
+  });
 });
 
 document.getElementById('emailLoginBtn').onclick=async()=>{
@@ -154,8 +157,67 @@ async function loadSales(){
 }
 
 function renderAll(){
-  renderProducts(); renderProductSearch(); renderCustomers(); renderCustomersDatalist(); renderHistory(); renderClosing(); renderCart();
+  renderProducts(); renderProductSearch(); renderCustomers(); renderCustomersDatalist(); renderHistory(); renderClosing(); renderCart(); renderRestock();
 }
+
+
+function renderRestock(){
+  const body=document.getElementById('restockBody');
+  if(!body) return;
+  const q=(document.getElementById('restockFilter')?.value||'').toLowerCase().trim();
+  let arr=products.slice().sort((a,b)=>a.name.localeCompare(b.name));
+  if(q) arr=arr.filter(p=>String(p.code).toLowerCase().includes(q)||p.name.toLowerCase().includes(q));
+
+  body.innerHTML=arr.length?arr.map(p=>`
+    <tr>
+      <td><strong>${esc(p.code)}</strong></td>
+      <td>${esc(p.name)}</td>
+      <td>${Number(p.stock||0)}</td>
+      <td><input class="restock-input" type="number" min="0" step="1" placeholder="0" data-restock="${p.id}"></td>
+      <td class="restock-new" data-new-stock="${p.id}">${Number(p.stock||0)}</td>
+    </tr>
+  `).join(''):'<tr><td colspan="5" class="muted">Geen producten gevonden.</td></tr>';
+
+  body.querySelectorAll('[data-restock]').forEach(inp=>{
+    inp.addEventListener('input',()=>{
+      const p=products.find(x=>x.id===inp.dataset.restock);
+      const add=Math.max(0,Number(inp.value||0));
+      const target=body.querySelector(`[data-new-stock="${inp.dataset.restock}"]`);
+      if(target&&p) target.textContent=Number(p.stock||0)+add;
+    });
+  });
+}
+
+document.getElementById('restockFilter')?.addEventListener('input',renderRestock);
+
+document.getElementById('clearRestockBtn')?.addEventListener('click',()=>{
+  document.querySelectorAll('[data-restock]').forEach(inp=>inp.value='');
+  renderRestock();
+});
+
+document.getElementById('saveRestockBtn')?.addEventListener('click',async()=>{
+  if(currentRole!=='admin'){showToast('Alleen beheerder kan voorraad aanvullen.');return;}
+
+  const inputs=[...document.querySelectorAll('[data-restock]')];
+  const changes=inputs
+    .map(inp=>({id:inp.dataset.restock,add:Number(inp.value||0)}))
+    .filter(x=>Number.isFinite(x.add)&&x.add>0);
+
+  if(changes.length===0){showToast('Vul minimaal één aantal in.');return;}
+
+  try{
+    for(const ch of changes){
+      const p=products.find(x=>x.id===ch.id);
+      if(!p) continue;
+      p.stock=Number(p.stock||0)+ch.add;
+      await updateDoc(doc(db,'products',p.id),{stock:p.stock});
+    }
+    renderAll();
+    showToast(changes.length+' voorraadregels opgeslagen.');
+  }catch(e){
+    showToast('Voorraad kon niet volledig worden opgeslagen: '+e.message);
+  }
+});
 
 function renderCustomersDatalist(){
   document.getElementById('customerList').innerHTML=customers

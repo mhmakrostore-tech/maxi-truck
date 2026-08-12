@@ -33,3 +33,13 @@ Voor synchronisatie tussen tablet en pc moet Firebase later gekoppeld worden.
 - Invoice toont onderaan apart: subtotaal excl. OB, OB-bedrag, totaal incl. OB.
 - Bij Print factuur wordt de invoice eerst opgeslagen en daarna het printvenster geopend.
 - Firestore persistent cache is geactiveerd voor online/offline gebruik.
+
+
+## v5 – Voorraad aanvullen
+- Nieuwe beheerder-tab **Voorraad aanvullen**.
+- Alle producten staan onder elkaar met huidige voorraad.
+- Vul alleen het aantal in dat wordt bijgevoegd.
+- Nieuwe voorraad wordt direct als voorbeeld berekend.
+- Met **Alles opslaan** worden alle ingevulde producten in één keer bijgewerkt.
+- Lege velden veranderen niets.
+- Tablet/verkoop-account ziet deze tab niet.

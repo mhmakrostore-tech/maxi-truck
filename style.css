@@ -20,3 +20,6 @@
 .invoice-totals{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
 .invoice-totals>div{min-width:260px;display:flex;justify-content:space-between;gap:20px}
 .invoice-totals .grand-total{font-size:22px;border-top:1px solid #d1d5db;padding-top:8px;margin-top:4px}
+
+.restock-input{min-width:100px;max-width:130px}
+.restock-new{font-weight:700}
