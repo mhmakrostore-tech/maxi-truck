@@ -573,60 +573,85 @@ document.querySelectorAll('[data-add-each]').forEach(b=>b.onclick=()=>addToCart(
 }
 
 function addToCart(id,unit='EACH',requestedQty=1){
-  const p=products.find(x=>x.id===id); if(!p)return;
+  const p=products.find(x=>x.id===id);
+  if(!p){showToast('Product niet gevonden.');return;}
 
-  const isCrt=unit==='CRT';
-  const isP12=unit==='P12';
-  const isDeal1=unit==='DEAL1';
-  const isDeal2=unit==='DEAL2';
+  const addQty=Math.max(1,Math.floor(Number(requestedQty)||1));
+  let unitsPerSale=1;
+  let unitPrice=Number(p.price||0);
+  let freePerCrt=0;
+  let label='EACH';
 
-  let unitsPerSale=1, unitPrice=Number(p.price), freePerCrt=0, label='EACH';
-
-  if(isP12){
+  if(unit==='P12'){
     if(p.p12Price==null){showToast('P12-prijs is niet ingesteld.');return;}
-    unitsPerSale=12; unitPrice=Number(p.p12Price); label='P12';
-  } else if(isDeal1){
-    if(p.qtyPrice1Qty==null||p.qtyPrice1Price==null){showToast('Aantalprijs 1 is niet ingesteld.');return;}
-    unitsPerSale=Number(p.qtyPrice1Qty); unitPrice=Number(p.qtyPrice1Price); label=`${unitsPerSale} EACH`;
-  } else if(isDeal2){
-    if(p.qtyPrice2Qty==null||p.qtyPrice2Price==null){showToast('Aantalprijs 2 is niet ingesteld.');return;}
-    unitsPerSale=Number(p.qtyPrice2Qty); unitPrice=Number(p.qtyPrice2Price); label=`${unitsPerSale} EACH`;
-  } else if(isCrt){
-    if(p.crtPrice==null || !p.crtPcs){showToast('CRT is niet ingesteld voor dit product.');return;}
-    freePerCrt=p.crtFree?1:0;
+    unitsPerSale=12;
+    unitPrice=Number(p.p12Price);
+    label='P12';
+  }else if(unit==='DEAL1'){
+    if(p.qtyPrice1Qty==null || p.qtyPrice1Price==null){showToast('Aantalprijs 1 is niet ingesteld.');return;}
+    unitsPerSale=Number(p.qtyPrice1Qty);
+    unitPrice=Number(p.qtyPrice1Price);
+    label=`${unitsPerSale} EACH`;
+  }else if(unit==='DEAL2'){
+    if(p.qtyPrice2Qty==null || p.qtyPrice2Price==null){showToast('Aantalprijs 2 is niet ingesteld.');return;}
+    unitsPerSale=Number(p.qtyPrice2Qty);
+    unitPrice=Number(p.qtyPrice2Price);
+    label=`${unitsPerSale} EACH`;
+  }else if(unit==='CRT'){
+    if(p.crtPrice==null || !Number(p.crtPcs)){
+      showToast('CRT-prijs of PCS per CRT ontbreekt bij dit product.');
+      return;
+    }
     unitsPerSale=Number(p.crtPcs);
     unitPrice=Number(p.crtPrice);
+    freePerCrt=p.crtFree?1:0;
     label='CRT';
   }
 
   const stockUnitsPerSale=unitsPerSale+freePerCrt;
-  const addQty=Math.max(1,Math.floor(Number(requestedQty)||1));
-
   const key=id+'_'+unit;
-  const l=cart.find(x=>x.key===key);
-  const newQty=(l?Number(l.qty||0):0)+addQty;
+  const existing=cart.find(x=>x.key===key);
+  const newQty=(existing?Number(existing.qty||0):0)+addQty;
   const pcsNeeded=newQty*stockUnitsPerSale;
-  if(pcsNeeded>p.stock){showToast('Niet genoeg voorraad voor dit aantal.');return;}
 
-  if(l){
-    l.qty=newQty;
+  if(pcsNeeded>Number(p.stock||0)){
+    showToast(`Niet genoeg voorraad. Nodig: ${pcsNeeded} EACH, voorraad: ${Number(p.stock||0)}.`);
+    return;
+  }
+
+  if(existing){
+    existing.qty=newQty;
   }else{
     cart.push({
-      key,productId:p.id,code:p.code,name:p.name,price:unitPrice,commission:p.commission||0,commissionBase:p.commissionBase||0,
-      tpP12CommissionBase:p.tpP12CommissionBase||0,tpCrtCommissionBase:p.tpCrtCommissionBase||0,
-      tpCommission:!!p.tpCommission,ob:p.ob||0,
-      qty:addQty,unit,label,unitsPerSale,freePerCrt,stockUnitsPerSale
+      key,
+      productId:p.id,
+      code:p.code,
+      name:p.name,
+      price:unitPrice,
+      commission:p.commission||0,
+      commissionBase:p.commissionBase||0,
+      tpP12CommissionBase:p.tpP12CommissionBase||0,
+      tpCrtCommissionBase:p.tpCrtCommissionBase||0,
+      tpCommission:!!p.tpCommission,
+      ob:p.ob||0,
+      qty:addQty,
+      unit,
+      label,
+      unitsPerSale,
+      freePerCrt,
+      stockUnitsPerSale
     });
   }
+
   renderCart();
-  // v21: na product toevoegen zoekveld bij Verkoop automatisch leegmaken
-  const saleSearch = document.getElementById('productSearch');
-  if (saleSearch) {
-    saleSearch.value = '';
+
+  // Zoekveld pas NA succesvol toevoegen leegmaken.
+  const saleSearch=document.getElementById('productSearch');
+  if(saleSearch){
+    saleSearch.value='';
     renderProductResults('');
     saleSearch.focus();
   }
-
 }
 function renderCart(){
   const body=document.getElementById('cartBody');

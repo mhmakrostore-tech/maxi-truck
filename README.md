@@ -231,3 +231,12 @@ Voor synchronisatie tussen tablet en pc moet Firebase later gekoppeld worden.
 - Vul 3 in en druk P12 → 3 P12 wordt toegevoegd.
 - Vul 2 in en druk CRT → 2 CRT wordt toegevoegd.
 - Voorraadcontrole houdt rekening met het ingevoerde aantal en de gekozen eenheid.
+
+
+## v29 – CRT toevoegen hersteld
+- CRT-knop gebruikt nu betrouwbaar het aantal uit het vak bij Verkoop.
+- Voorbeeld: aantal 2 + CRT voegt 2 CRT toe aan de factuur.
+- Voorraadcontrole rekent met `aantal CRT × PCS per CRT`.
+- Als `1 FREE` actief is, wordt ook de gratis EACH per CRT meegenomen in de voorraad.
+- Als CRT-prijs of PCS per CRT ontbreekt, verschijnt nu een duidelijke melding.
+- Zoekveld wordt pas leeggemaakt nadat het product succesvol aan de factuur is toegevoegd.
