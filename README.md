@@ -213,3 +213,13 @@ Voor synchronisatie tussen tablet en pc moet Firebase later gekoppeld worden.
 - Bij meerdere P12/CRT wordt ook met het verkochte aantal vermenigvuldigd.
 - Als TP niet is aangevinkt, blijft de normale vaste commissiebasis per verkochte eenheid gelden.
 - De verkoper hoeft tijdens verkoop niets aan te vinken; de instelling wordt éénmalig bij het product opgeslagen.
+
+
+## v27 – TP aparte commissiebasis voor P12 en CRT
+- Product éénmalig aanvinken als **TP product**.
+- Apart veld **TP commissie basis P12 (CG)**.
+- Apart veld **TP commissie basis CRT (CG)**.
+- Bij verkoop als P12 gebruikt Maxi-Truck automatisch de P12-commissiebasis.
+- Bij verkoop als CRT gebruikt Maxi-Truck automatisch de CRT-commissiebasis.
+- De verkoper hoeft tijdens verkoop niets aan te vinken.
+- Voor normale verkoop blijft **Commissie basis normaal (CG)** beschikbaar.

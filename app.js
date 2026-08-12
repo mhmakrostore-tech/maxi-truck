@@ -54,21 +54,20 @@ function setPhotoPreview(data){
 function commissionForLine(line){
   const pct=Number(line.commission||0)/100;
   if(pct<=0) return 0;
-
-  const basePerEach=Number(line.commissionBase||0);
   const qty=Number(line.qty||0);
 
-  // Alleen als TP bij het product is aangevinkt:
-  // P12 = basis per EACH × 12
-  // CRT = basis per EACH × PCS per CRT
-  if(line.tpCommission && (line.unit==='P12' || line.unit==='CRT')){
-    const pcsPerUnit=Number(line.unitsPerSale||1);
-    return basePerEach * pcsPerUnit * qty * pct;
+  // Alleen voor producten die éénmalig als TP zijn aangevinkt.
+  if(line.tpCommission){
+    if(line.unit==='P12'){
+      return Number(line.tpP12CommissionBase||0) * qty * pct;
+    }
+    if(line.unit==='CRT'){
+      return Number(line.tpCrtCommissionBase||0) * qty * pct;
+    }
   }
 
-  // Normale producten (of TP verkocht als EACH):
-  // vaste commissiebasis per verkochte eenheid.
-  return basePerEach * qty * pct;
+  // Normale verkoop / EACH / andere eenheden.
+  return Number(line.commissionBase||0) * qty * pct;
 }
 
 function calcLine(line){
@@ -336,6 +335,8 @@ function fillProductForm(p){
   document.getElementById('pStock').value=p.stock ?? 0;
   document.getElementById('pCommission').value=p.commission ?? 0;
   document.getElementById('pCommissionBase').value=p.commissionBase ?? '';
+  document.getElementById('pTpP12CommissionBase').value=p.tpP12CommissionBase ?? '';
+  document.getElementById('pTpCrtCommissionBase').value=p.tpCrtCommissionBase ?? '';
   document.getElementById('pTpCommission').checked=!!p.tpCommission;
   document.getElementById('pOb').value=p.ob ?? 0;
   setPhotoPreview(p.photo||'');
@@ -430,6 +431,8 @@ function resetProductForm(){
   document.getElementById('pCrtFree').checked=false;
   setPhotoPreview('');
   document.getElementById('pCommissionBase').value='';
+  document.getElementById('pTpP12CommissionBase').value='';
+  document.getElementById('pTpCrtCommissionBase').value='';
   document.getElementById('pTpCommission').checked=false;
 }
 document.getElementById('pPhoto').addEventListener('change',async e=>{
@@ -457,6 +460,8 @@ document.getElementById('saveProductBtn').onclick=async()=>{
     stock:Number(document.getElementById('pStock').value),
     commission:Number(document.getElementById('pCommission').value||0),
     commissionBase:Number(document.getElementById('pCommissionBase').value||0),
+    tpP12CommissionBase:Number(document.getElementById('pTpP12CommissionBase').value||0),
+    tpCrtCommissionBase:Number(document.getElementById('pTpCrtCommissionBase').value||0),
     tpCommission:Boolean(document.getElementById('pTpCommission').checked),
     ob:Number(document.getElementById('pOb').value||0),
     photo:currentProductPhoto||''
@@ -596,7 +601,9 @@ function addToCart(id,unit='EACH'){
     l.qty++;
   }else{
     cart.push({
-      key,productId:p.id,code:p.code,name:p.name,price:unitPrice,commission:p.commission||0,commissionBase:p.commissionBase||0,tpCommission:!!p.tpCommission,ob:p.ob||0,
+      key,productId:p.id,code:p.code,name:p.name,price:unitPrice,commission:p.commission||0,commissionBase:p.commissionBase||0,
+      tpP12CommissionBase:p.tpP12CommissionBase||0,tpCrtCommissionBase:p.tpCrtCommissionBase||0,
+      tpCommission:!!p.tpCommission,ob:p.ob||0,
       qty:1,unit,label,unitsPerSale,freePerCrt,stockUnitsPerSale
     });
   }
@@ -668,9 +675,11 @@ async function saveCurrentSale({printAfter=false}={}){
       freeQty:(l.unit==='CRT'?Number(l.qty||0)*Number(l.freePerCrt||0):0),
       stockPcs:Number(l.qty||0)*Number(l.stockUnitsPerSale||l.unitsPerSale||1),
       subtotal:c.subtotal,obAmount:c.obAmount,total:c.total,
-      commissionBaseUsed:(l.tpCommission && (l.unit==='P12' || l.unit==='CRT'))
-        ? Number(l.commissionBase||0) * Number(l.unitsPerSale||1)
-        : Number(l.commissionBase||0),
+      commissionBaseUsed:(
+        l.tpCommission && l.unit==='P12' ? Number(l.tpP12CommissionBase||0) :
+        l.tpCommission && l.unit==='CRT' ? Number(l.tpCrtCommissionBase||0) :
+        Number(l.commissionBase||0)
+      ),
       commissionAmount:commissionForLine(l)
     };
   });
