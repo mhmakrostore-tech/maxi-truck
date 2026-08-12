@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#111827">
   <title>Maxi-Truck</title>
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css?v=14">
+  <link rel="stylesheet" href="style.css?v=15">
 </head>
 <body>
 
@@ -106,6 +106,18 @@
         <label>Prijs EACH (CG)
           <input id="pPrice" type="number" min="0" step="0.01" placeholder="0.00">
         </label>
+        <label>Aantal prijs 1
+          <input id="pQtyPrice1Qty" type="number" min="2" step="1" placeholder="bijv. 4">
+        </label>
+        <label>Prijs voor aantal 1 (CG)
+          <input id="pQtyPrice1Price" type="number" min="0" step="0.01" placeholder="bijv. 5.00">
+        </label>
+        <label>Aantal prijs 2
+          <input id="pQtyPrice2Qty" type="number" min="2" step="1" placeholder="bijv. 8">
+        </label>
+        <label>Prijs voor aantal 2 (CG)
+          <input id="pQtyPrice2Price" type="number" min="0" step="0.01" placeholder="bijv. 9.00">
+        </label>
         <label>Prijs CRT (CG)
           <input id="pCrtPrice" type="number" min="0" step="0.01" placeholder="Leeg = geen CRT">
         </label>
@@ -141,7 +153,7 @@
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Foto</th><th>Code</th><th>Product</th><th>EACH</th><th>CRT</th><th>PCS/CRT</th><th>FREE</th><th>Voorraad</th><th>Commissie</th><th>OB</th><th>Acties</th></tr></thead>
+          <thead><tr><th>Foto</th><th>Code</th><th>Product</th><th>EACH</th><th>Aantalprijs 1</th><th>Aantalprijs 2</th><th>CRT</th><th>PCS/CRT</th><th>FREE</th><th>Voorraad</th><th>Commissie</th><th>OB</th><th>Acties</th></tr></thead>
           <tbody id="productsBody"></tbody>
         </table>
       </div>
@@ -251,8 +263,8 @@
 <div id="toast" class="toast hidden"></div>
 
 
-<script type="module" src="firebase-app.js?v=14"></script>
+<script type="module" src="firebase-app.js?v=15"></script>
 
-<script type="module" src="app.js?v=14"></script>
+<script type="module" src="app.js?v=15"></script>
 </body>
 </html>

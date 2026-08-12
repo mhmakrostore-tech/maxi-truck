@@ -297,7 +297,7 @@ function renderCustomers(){
 }
 
 function resetProductForm(){
-  ['productId','pCode','pName','pPrice','pCrtPrice','pCrtPcs','pStock','pCommission','pOb'].forEach(id=>document.getElementById(id).value='');
+  ['productId','pCode','pName','pPrice','pQtyPrice1Qty','pQtyPrice1Price','pQtyPrice2Qty','pQtyPrice2Price','pCrtPrice','pCrtPcs','pStock','pCommission','pOb'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('pPhoto').value='';
   document.getElementById('pCrtFree').checked=false;
   setPhotoPreview('');
@@ -316,6 +316,10 @@ document.getElementById('saveProductBtn').onclick=async()=>{
     code:document.getElementById('pCode').value.trim(),
     name:document.getElementById('pName').value.trim(),
     price:Number(document.getElementById('pPrice').value),
+    qtyPrice1Qty:document.getElementById('pQtyPrice1Qty').value===''?null:Number(document.getElementById('pQtyPrice1Qty').value),
+    qtyPrice1Price:document.getElementById('pQtyPrice1Price').value===''?null:Number(document.getElementById('pQtyPrice1Price').value),
+    qtyPrice2Qty:document.getElementById('pQtyPrice2Qty').value===''?null:Number(document.getElementById('pQtyPrice2Qty').value),
+    qtyPrice2Price:document.getElementById('pQtyPrice2Price').value===''?null:Number(document.getElementById('pQtyPrice2Price').value),
     crtPrice:document.getElementById('pCrtPrice').value===''?null:Number(document.getElementById('pCrtPrice').value),
     crtPcs:document.getElementById('pCrtPcs').value===''?null:Number(document.getElementById('pCrtPcs').value),
     crtFree:document.getElementById('pCrtFree').checked===true,
@@ -328,6 +332,10 @@ document.getElementById('saveProductBtn').onclick=async()=>{
   if(data.crtPrice!==null && (!Number.isFinite(data.crtPrice) || !Number.isFinite(data.crtPcs) || data.crtPcs<1)){
     showToast('Vul bij CRT ook het aantal PCS per CRT in.');return;
   }
+  if((data.qtyPrice1Qty!==null)!=(data.qtyPrice1Price!==null)){showToast('Vul bij aantalprijs 1 zowel aantal als prijs in.');return;}
+  if((data.qtyPrice2Qty!==null)!=(data.qtyPrice2Price!==null)){showToast('Vul bij aantalprijs 2 zowel aantal als prijs in.');return;}
+  if(data.qtyPrice1Qty!==null && data.qtyPrice1Qty<2){showToast('Aantalprijs 1 moet minimaal 2 zijn.');return;}
+  if(data.qtyPrice2Qty!==null && data.qtyPrice2Qty<2){showToast('Aantalprijs 2 moet minimaal 2 zijn.');return;}
   if(data.crtPrice===null){data.crtPcs=null;data.crtFree=false;}
   if(id){
     await setDoc(doc(db,'products',id),data);
@@ -366,13 +374,17 @@ function renderProducts(){
   let arr=products.slice().sort((a,b)=>a.name.localeCompare(b.name));
   if(q) arr=arr.filter(p=>p.name.toLowerCase().includes(q)||String(p.code).toLowerCase().includes(q));
   const body=document.getElementById('productsBody');
-  body.innerHTML=arr.length?arr.map(p=>`<tr><td>${p.photo?`<img class="product-thumb" src="${p.photo}" alt="">`:''}</td><td><strong>${esc(p.code)}</strong></td><td>${esc(p.name)}</td><td>${money(p.price)}</td><td>${p.crtPrice!=null?money(p.crtPrice):'-'}</td><td>${p.crtPrice!=null?(p.crtPcs||'-'):'-'}</td><td>${p.crtFree?'1 FREE':'-'}</td><td>${p.stock}</td><td>${Number(p.commission||0).toFixed(2)}%</td><td>${Number(p.ob||0).toFixed(2)}%</td><td>${currentRole==='admin'?`<button class="icon-btn" data-edit="${p.id}">Bewerken</button> <button class="danger icon-btn" data-delete="${p.id}">Verwijderen</button>`:''}</td></tr>`).join(''):'<tr><td colspan="11" class="muted">Geen producten.</td></tr>';
+  body.innerHTML=arr.length?arr.map(p=>`<tr><td>${p.photo?`<img class="product-thumb" src="${p.photo}" alt="">`:''}</td><td><strong>${esc(p.code)}</strong></td><td>${esc(p.name)}</td><td>${money(p.price)}</td><td>${p.qtyPrice1Qty!=null?`${p.qtyPrice1Qty} = ${money(p.qtyPrice1Price)}`:'-'}</td><td>${p.qtyPrice2Qty!=null?`${p.qtyPrice2Qty} = ${money(p.qtyPrice2Price)}`:'-'}</td><td>${p.crtPrice!=null?money(p.crtPrice):'-'}</td><td>${p.crtPrice!=null?(p.crtPcs||'-'):'-'}</td><td>${p.crtFree?'1 FREE':'-'}</td><td>${p.stock}</td><td>${Number(p.commission||0).toFixed(2)}%</td><td>${Number(p.ob||0).toFixed(2)}%</td><td>${currentRole==='admin'?`<button class="icon-btn" data-edit="${p.id}">Bewerken</button> <button class="danger icon-btn" data-delete="${p.id}">Verwijderen</button>`:''}</td></tr>`).join(''):'<tr><td colspan="13" class="muted">Geen producten.</td></tr>';
   body.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{
     const p=products.find(x=>x.id===b.dataset.edit); if(!p)return;
     document.getElementById('productId').value=p.id;
     document.getElementById('pCode').value=p.code;
     document.getElementById('pName').value=p.name;
     document.getElementById('pPrice').value=p.price;
+    document.getElementById('pQtyPrice1Qty').value=p.qtyPrice1Qty ?? '';
+    document.getElementById('pQtyPrice1Price').value=p.qtyPrice1Price ?? '';
+    document.getElementById('pQtyPrice2Qty').value=p.qtyPrice2Qty ?? '';
+    document.getElementById('pQtyPrice2Price').value=p.qtyPrice2Price ?? '';
     document.getElementById('pCrtPrice').value=p.crtPrice ?? '';
     document.getElementById('pCrtPcs').value=p.crtPcs ?? '';
     document.getElementById('pCrtFree').checked=!!p.crtFree;
@@ -396,20 +408,37 @@ function renderProductSearch(){
   let arr=products.slice().sort((a,b)=>a.name.localeCompare(b.name));
   if(q) arr=arr.filter(p=>p.name.toLowerCase().includes(q)||String(p.code).toLowerCase().includes(q));
   if(!q) arr=arr.slice(0,8);
-  document.getElementById('productResults').innerHTML=arr.map(p=>`<div class="product-card">${p.photo?`<img class="product-card-photo" src="${p.photo}" alt="">`:''}<div class="code">Code: ${esc(p.code)}</div><strong>${esc(p.name)}</strong><div><strong>${money(p.price)}</strong> <span class="muted">(EACH, excl. OB)</span></div>${p.crtPrice!=null?`<div><strong>${money(p.crtPrice)}</strong> <span class="muted">(CRT ${p.crtPcs} PCS, excl. OB)</span>${p.crtFree?` <span class="free-badge">+ 1 FREE</span>`:''}</div>`:''}<div class="sale-choice"><button data-add-each="${p.id}" ${p.stock<=0?'disabled':''}>EACH</button>${p.crtPrice!=null?`<button class="secondary" data-add-crt="${p.id}" ${p.stock<(p.crtPcs||1)?'disabled':''}>CRT</button>`:''}</div></div>`).join('')||'<div class="muted">Geen product gevonden.</div>';
+  document.getElementById('productResults').innerHTML=arr.map(p=>`<div class="product-card">${p.photo?`<img class="product-card-photo" src="${p.photo}" alt="">`:''}<div class="code">Code: ${esc(p.code)}</div><strong>${esc(p.name)}</strong><div><strong>${money(p.price)}</strong> <span class="muted">(EACH, excl. OB)</span></div>${p.qtyPrice1Qty!=null?`<div><strong>${money(p.qtyPrice1Price)}</strong> <span class="muted">(${p.qtyPrice1Qty} EACH, excl. OB)</span></div>`:''}${p.qtyPrice2Qty!=null?`<div><strong>${money(p.qtyPrice2Price)}</strong> <span class="muted">(${p.qtyPrice2Qty} EACH, excl. OB)</span></div>`:''}${p.crtPrice!=null?`<div><strong>${money(p.crtPrice)}</strong> <span class="muted">(CRT ${p.crtPcs} PCS, excl. OB)</span>${p.crtFree?` <span class="free-badge">+ 1 FREE</span>`:''}</div>`:''}<div class="sale-choice"><button data-add-each="${p.id}" ${p.stock<=0?'disabled':''}>EACH</button>${p.qtyPrice1Qty!=null?`<button class="secondary" data-add-deal1="${p.id}" ${p.stock<p.qtyPrice1Qty?'disabled':''}>${p.qtyPrice1Qty} EACH</button>`:''}${p.qtyPrice2Qty!=null?`<button class="secondary" data-add-deal2="${p.id}" ${p.stock<p.qtyPrice2Qty?'disabled':''}>${p.qtyPrice2Qty} EACH</button>`:''}${p.crtPrice!=null?`<button class="secondary" data-add-crt="${p.id}" ${p.stock<(p.crtPcs||1)?'disabled':''}>CRT</button>`:''}</div></div>`).join('')||'<div class="muted">Geen product gevonden.</div>';
   document.querySelectorAll('[data-add-each]').forEach(b=>b.onclick=()=>addToCart(b.dataset.addEach,'EACH'));
+  document.querySelectorAll('[data-add-deal1]').forEach(b=>b.onclick=()=>addToCart(b.dataset.addDeal1,'DEAL1'));
+  document.querySelectorAll('[data-add-deal2]').forEach(b=>b.onclick=()=>addToCart(b.dataset.addDeal2,'DEAL2'));
   document.querySelectorAll('[data-add-crt]').forEach(b=>b.onclick=()=>addToCart(b.dataset.addCrt,'CRT'));
 }
 
 function addToCart(id,unit='EACH'){
   const p=products.find(x=>x.id===id); if(!p)return;
-  const isCrt=unit==='CRT';
-  const freePerCrt=isCrt && p.crtFree ? 1 : 0;
-  const unitsPerSale=isCrt?Number(p.crtPcs||0):1;
-  const stockUnitsPerSale=unitsPerSale+freePerCrt;
-  const unitPrice=isCrt?Number(p.crtPrice):Number(p.price);
 
-  if(isCrt && (p.crtPrice==null || !p.crtPcs)){showToast('CRT is niet ingesteld voor dit product.');return;}
+  const isCrt=unit==='CRT';
+  const isDeal1=unit==='DEAL1';
+  const isDeal2=unit==='DEAL2';
+
+  let unitsPerSale=1, unitPrice=Number(p.price), freePerCrt=0, label='EACH';
+
+  if(isDeal1){
+    if(p.qtyPrice1Qty==null||p.qtyPrice1Price==null){showToast('Aantalprijs 1 is niet ingesteld.');return;}
+    unitsPerSale=Number(p.qtyPrice1Qty); unitPrice=Number(p.qtyPrice1Price); label=`${unitsPerSale} EACH`;
+  } else if(isDeal2){
+    if(p.qtyPrice2Qty==null||p.qtyPrice2Price==null){showToast('Aantalprijs 2 is niet ingesteld.');return;}
+    unitsPerSale=Number(p.qtyPrice2Qty); unitPrice=Number(p.qtyPrice2Price); label=`${unitsPerSale} EACH`;
+  } else if(isCrt){
+    if(p.crtPrice==null || !p.crtPcs){showToast('CRT is niet ingesteld voor dit product.');return;}
+    freePerCrt=p.crtFree?1:0;
+    unitsPerSale=Number(p.crtPcs);
+    unitPrice=Number(p.crtPrice);
+    label='CRT';
+  }
+
+  const stockUnitsPerSale=unitsPerSale+freePerCrt;
   if(p.stock<stockUnitsPerSale){showToast('Niet genoeg voorraad.');return;}
 
   const key=id+'_'+unit;
@@ -421,7 +450,7 @@ function addToCart(id,unit='EACH'){
   }else{
     cart.push({
       key,productId:p.id,code:p.code,name:p.name,price:unitPrice,commission:p.commission||0,ob:p.ob||0,
-      qty:1,unit,unitsPerSale,freePerCrt,stockUnitsPerSale
+      qty:1,unit,label,unitsPerSale,freePerCrt,stockUnitsPerSale
     });
   }
   renderCart();
@@ -432,7 +461,7 @@ function renderCart(){
   const table=document.getElementById('cartTable');
   if(cart.length===0){empty.classList.remove('hidden');table.classList.add('hidden');}
   else{empty.classList.add('hidden');table.classList.remove('hidden');}
-  body.innerHTML=cart.map((l,i)=>`<tr><td><strong>${esc(l.code)}</strong></td><td>${esc(l.name)} <span class="unit-badge">${l.unit}</span>${l.unit==='CRT'?`<div class="muted">${l.unitsPerSale} PCS per CRT${l.freePerCrt?` + ${l.freePerCrt} FREE`:''}</div>`:''}</td><td><input style="width:75px" type="number" min="1" value="${l.qty}" data-qty="${i}"></td><td>${money(l.price)}</td><td>${money(l.price*l.qty)}</td><td><button class="danger icon-btn" data-remove="${i}">X</button></td></tr>`).join('');
+  body.innerHTML=cart.map((l,i)=>`<tr><td><strong>${esc(l.code)}</strong></td><td>${esc(l.name)} <span class="unit-badge">${esc(l.label||l.unit)}</span>${l.unit==='CRT'?`<div class="muted">${l.unitsPerSale} PCS per CRT${l.freePerCrt?` + ${l.freePerCrt} FREE`:''}</div>`:''}</td><td><input style="width:75px" type="number" min="1" value="${l.qty}" data-qty="${i}"></td><td>${money(l.price)}</td><td>${money(l.price*l.qty)}</td><td><button class="danger icon-btn" data-remove="${i}">X</button></td></tr>`).join('');
   body.querySelectorAll('[data-qty]').forEach(inp=>inp.onchange=()=>{
     const i=Number(inp.dataset.qty), l=cart[i], p=products.find(x=>x.id===l.productId);
     let q=Math.max(1,Number(inp.value)||1);
@@ -448,6 +477,16 @@ function renderCart(){
   document.getElementById('cartTotal').textContent=money(subtotal+obTotal);
 }
 document.getElementById('clearCartBtn').onclick=()=>{cart=[];renderCart();};
+
+
+function nextInvoiceNumber(){
+  const d=today().replaceAll('-','');
+  const prefix='MT-'+d+'-';
+  const nums=sales.map(s=>String(s.invoiceNumber||'')).filter(x=>x.startsWith(prefix))
+    .map(x=>Number(x.slice(prefix.length))).filter(Number.isFinite);
+  const next=(nums.length?Math.max(...nums):0)+1;
+  return prefix+String(next).padStart(3,'0');
+}
 
 async function saveCurrentSale({printAfter=false}={}){
   if(cart.length===0){showToast('Voeg eerst producten toe.');return null;}
@@ -469,7 +508,7 @@ async function saveCurrentSale({printAfter=false}={}){
     const c=calcLine(l);
     return {
       productId:l.productId,code:l.code,name:l.name,price:l.price,commission:l.commission,ob:l.ob||0,qty:l.qty,
-      unit:l.unit||'EACH',unitsPerSale:Number(l.unitsPerSale||1),
+      unit:l.unit||'EACH',label:l.label||l.unit||'EACH',unitsPerSale:Number(l.unitsPerSale||1),
       freePerCrt:Number(l.freePerCrt||0),
       freeQty:(l.unit==='CRT'?Number(l.qty||0)*Number(l.freePerCrt||0):0),
       stockPcs:Number(l.qty||0)*Number(l.stockUnitsPerSale||l.unitsPerSale||1),
@@ -481,8 +520,10 @@ async function saveCurrentSale({printAfter=false}={}){
   const obTotal=lines.reduce((s,l)=>s+l.obAmount,0);
   const total=subtotal+obTotal;
 
+  const createdAt=new Date().toISOString();
+  const invoiceNumber=nextInvoiceNumber();
   const sale={
-    invoiceId:currentInvoiceId,date:today(),createdAt:new Date().toISOString(),customer,lines,
+    invoiceId:currentInvoiceId,invoiceNumber,date:today(),createdAt,customer,lines,
     subtotal,obTotal,total,
     commissionTotal:lines.reduce((s,l)=>s+l.commissionAmount,0),
     createdBy:currentUser.email
@@ -511,11 +552,14 @@ document.getElementById('saveSaleBtn').onclick=()=>saveCurrentSale({printAfter:f
 
 function printSavedInvoice(sale){
   printHtml(`<h1>Maxi-Truck</h1>
-  <p><strong>Invoice:</strong> ${esc(sale.invoiceId)}</p>
-  <p><strong>Klant:</strong> ${esc(sale.customer)}</p>
-  <p><strong>Datum:</strong> ${new Date(sale.createdAt).toLocaleString('nl-NL')}</p>
+  <div class="invoice-meta">
+    <div><strong>Factuurnummer:</strong> ${esc(sale.invoiceNumber||sale.invoiceId)}</div>
+    <div><strong>Klant:</strong> ${esc(sale.customer)}</div>
+    <div><strong>Datum:</strong> ${new Date(sale.createdAt).toLocaleDateString('nl-NL')}</div>
+    <div><strong>Tijd:</strong> ${new Date(sale.createdAt).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'})}</div>
+  </div>
   <table><tr><th>Code</th><th>Product</th><th>Aantal</th><th>Prijs excl. OB</th><th>Bedrag</th></tr>
-  ${sale.lines.map(l=>`<tr><td>${esc(l.code)}</td><td>${esc(l.name)} (${esc(l.unit||'EACH')})</td><td>${l.qty}</td><td>${money(l.price)}</td><td>${money(l.subtotal)}</td></tr>${l.freeQty?`<tr><td></td><td>+ FREE</td><td>${l.freeQty}</td><td>CG 0.00</td><td>CG 0.00</td></tr>`:''}`).join('')}
+  ${sale.lines.map(l=>`<tr><td>${esc(l.code)}</td><td>${esc(l.name)} (${esc(l.label||l.unit||'EACH')})</td><td>${l.qty}</td><td>${money(l.price)}</td><td>${money(l.subtotal)}</td></tr>${l.freeQty?`<tr><td></td><td>+ FREE</td><td>${l.freeQty}</td><td>CG 0.00</td><td>CG 0.00</td></tr>`:''}`).join('')}
   </table>
   <hr>
   <p style="text-align:right"><strong>Subtotaal excl. OB:</strong> ${money(sale.subtotal)}</p>
@@ -530,7 +574,7 @@ document.getElementById('historyDate').addEventListener('change',renderHistory);
 function renderHistory(){
   const date=document.getElementById('historyDate').value||today();
   const arr=sales.filter(s=>s.date===date).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
-  document.getElementById('salesHistory').innerHTML=arr.length?arr.map(s=>`<div class="sale-card"><div class="sale-head"><span>${esc(s.customer)}</span><span>${money(s.total)}</span></div><div>${new Date(s.createdAt).toLocaleString('nl-NL')}</div><div class="sale-lines">${s.lines.map(l=>`${esc(l.code)} — ${esc(l.name)} (${esc(l.unit||'EACH')}) × ${l.qty} = ${money(l.subtotal ?? (l.price*l.qty))} excl. OB${l.freeQty?`<br>+ FREE × ${l.freeQty} = CG 0.00`:''}`).join('<br>')}<br><strong>OB:</strong> ${money(s.obTotal||0)} • <strong>Totaal incl. OB:</strong> ${money(s.total)}</div></div>`).join(''):'<div class="muted">Geen verkopen op deze datum.</div>';
+  document.getElementById('salesHistory').innerHTML=arr.length?arr.map(s=>`<div class="sale-card"><div class="sale-head"><span>${esc(s.invoiceNumber||'')} • ${esc(s.customer)}</span><span>${money(s.total)}</span></div><div>${new Date(s.createdAt).toLocaleDateString('nl-NL')} ${new Date(s.createdAt).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'})}</div><div class="sale-lines">${s.lines.map(l=>`${esc(l.code)} — ${esc(l.name)} (${esc(l.label||l.unit||'EACH')}) × ${l.qty} = ${money(l.subtotal ?? (l.price*l.qty))} excl. OB${l.freeQty?`<br>+ FREE × ${l.freeQty} = CG 0.00`:''}`).join('<br>')}<br><strong>OB:</strong> ${money(s.obTotal||0)} • <strong>Totaal incl. OB:</strong> ${money(s.total)}</div></div>`).join(''):'<div class="muted">Geen verkopen op deze datum.</div>';
 }
 
 document.getElementById('closingDate').value=today();

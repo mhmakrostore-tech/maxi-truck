@@ -44,3 +44,7 @@
 .price-change-item:last-child{border-bottom:0}
 .price-change-name{font-size:18px;font-weight:700}
 .price-change-price{margin-top:4px;font-size:20px;font-weight:700}
+
+.deal-badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 6px;border-radius:999px;background:#dbeafe;color:#1e3a8a;margin-left:4px}
+.invoice-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0 14px}
+@media(max-width:700px){.invoice-meta{grid-template-columns:1fr}}

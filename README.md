@@ -113,3 +113,14 @@ Voor synchronisatie tussen tablet en pc moet Firebase later gekoppeld worden.
 - De knop Inloggen met e-mail gebruikt dezelfde submit-flow.
 - Als offline Firestore-cache niet kan starten, valt de app automatisch terug op online Firestore in plaats van dat de login vastloopt.
 - Duidelijke loginstatus/foutcode op het scherm.
+
+
+## v15 – Factuurnummer + datum/tijd + 2 aantalprijzen
+- Iedere invoice krijgt datum én tijd.
+- Iedere invoice krijgt een uniek dagnummer zoals `MT-20260812-001`.
+- Twee optionele aantalprijzen per product:
+  - Aantal prijs 1 + bijbehorende totale prijs
+  - Aantal prijs 2 + bijbehorende totale prijs
+- Voorbeeld: 4 EACH = CG 5.00 en 8 EACH = CG 9.00.
+- In de verkoop verschijnen extra knoppen alleen als die aantalprijzen zijn ingevuld.
+- Voorraad wordt met het juiste aantal EACH verminderd.
