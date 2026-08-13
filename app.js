@@ -506,6 +506,7 @@ function fillProductForm(p){
   document.getElementById('productId').value=p.id;
   document.getElementById('pCode').value=p.code||'';
   document.getElementById('pName').value=p.name||'';
+  document.getElementById('pCategory').value=p.category||'CANDY';
   document.getElementById('pPrice').value=p.price ?? '';
   document.getElementById('pP12Price').value=p.p12Price ?? '';
   document.getElementById('pQtyPrice1Qty').value=p.qtyPrice1Qty ?? '';
@@ -611,6 +612,7 @@ document.getElementById('pCode').addEventListener('blur',()=>{
 function resetProductForm(){
   ['productId','pCode','pName','pPrice','pP12Price','pQtyPrice1Qty','pQtyPrice1Price','pQtyPrice2Qty','pQtyPrice2Price','pCrtPrice','pCrtPcs','pStock','pCommission','pOb'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('pPhoto').value='';
+  document.getElementById('pCategory').value='CANDY';
   document.getElementById('pCrtFree').checked=false;
   setPhotoPreview('');
   document.getElementById('pCommissionBase').value='';
@@ -631,6 +633,7 @@ document.getElementById('saveProductBtn').onclick=async()=>{
   const data={
     code:document.getElementById('pCode').value.trim(),
     name:document.getElementById('pName').value.trim(),
+    category:document.getElementById('pCategory').value,
     price:Number(document.getElementById('pPrice').value),
     p12Price:document.getElementById('pP12Price').value===''?null:Number(document.getElementById('pP12Price').value),
     qtyPrice1Qty:document.getElementById('pQtyPrice1Qty').value===''?null:Number(document.getElementById('pQtyPrice1Qty').value),
@@ -734,11 +737,15 @@ function renderProducts(){
 }
 
 document.getElementById('productSearch').addEventListener('input',renderProductSearch);
+document.getElementById('saleCategoryFilter')?.addEventListener('change',renderProductSearch);
 function renderProductSearch(){
   const q=document.getElementById('productSearch').value.toLowerCase().trim();
   const words=q.split(/\s+/).filter(Boolean);
 
+  const category=(document.getElementById('saleCategoryFilter')?.value||'').trim();
+
   let arr=products.slice().filter(p=>{
+    if(category && String(p.category||'CANDY')!==category) return false;
     if(!words.length) return true;
     const hay=(String(p.name||'')+' '+String(p.code||'')).toLowerCase();
     return words.every(w=>hay.includes(w));
@@ -762,7 +769,7 @@ function renderProductSearch(){
 
     return score(an,ac)-score(bn,bc) || an.localeCompare(bn);
   });
-  document.getElementById('productResults').innerHTML=arr.map(p=>`<div class="product-card">${p.photo?`<img class="product-card-photo" src="${p.photo}" alt="">`:''}<strong>${esc(p.name)}</strong><div><strong>${money(p.price)}</strong> <span class="muted">(EACH, excl. OB)</span></div>${p.p12Price!=null?`<div><strong>${money(p.p12Price)}</strong> <span class="muted">(P12, excl. OB)</span></div>`:''}${p.qtyPrice1Qty!=null?`<div><strong>${money(p.qtyPrice1Price)}</strong> <span class="muted">(${p.qtyPrice1Qty} EACH, excl. OB)</span></div>`:''}${p.qtyPrice2Qty!=null?`<div><strong>${money(p.qtyPrice2Price)}</strong> <span class="muted">(${p.qtyPrice2Qty} EACH, excl. OB)</span></div>`:''}${p.crtPrice!=null?`<div><strong>${money(p.crtPrice)}</strong> <span class="muted">(CRT ${p.crtPcs} PCS, excl. OB)</span>${p.crtFree?` <span class="free-badge">+ 1 FREE</span>`:''}</div>`:''}<div class="sale-choice">
+  document.getElementById('productResults').innerHTML=arr.map(p=>`<div class="product-card">${p.photo?`<img class="product-card-photo" src="${p.photo}" alt="">`:''}<div class="muted">${esc(p.category||'CANDY')}</div><strong>${esc(p.name)}</strong><div><strong>${money(p.price)}</strong> <span class="muted">(EACH, excl. OB)</span></div>${p.p12Price!=null?`<div><strong>${money(p.p12Price)}</strong> <span class="muted">(P12, excl. OB)</span></div>`:''}${p.qtyPrice1Qty!=null?`<div><strong>${money(p.qtyPrice1Price)}</strong> <span class="muted">(${p.qtyPrice1Qty} EACH, excl. OB)</span></div>`:''}${p.qtyPrice2Qty!=null?`<div><strong>${money(p.qtyPrice2Price)}</strong> <span class="muted">(${p.qtyPrice2Qty} EACH, excl. OB)</span></div>`:''}${p.crtPrice!=null?`<div><strong>${money(p.crtPrice)}</strong> <span class="muted">(CRT ${p.crtPcs} PCS, excl. OB)</span>${p.crtFree?` <span class="free-badge">+ 1 FREE</span>`:''}</div>`:''}<div class="sale-choice">
 <input class="sale-qty-input" id="saleQty-${p.id}" type="number" min="1" step="1" value="1" inputmode="numeric" aria-label="Aantal">
 <button type="button" data-add-each="${p.id}" ${p.stock<=0?'disabled':''}>EACH</button>${p.p12Price!=null?`<button type="button" class="secondary" data-add-p12="${p.id}" ${p.stock<12?'disabled':''}>P12</button>`:''}${p.qtyPrice1Qty!=null?`<button type="button" class="secondary" data-add-deal1="${p.id}" ${p.stock<p.qtyPrice1Qty?'disabled':''}>${p.qtyPrice1Qty} EACH</button>`:''}${p.qtyPrice2Qty!=null?`<button type="button" class="secondary" data-add-deal2="${p.id}" ${p.stock<p.qtyPrice2Qty?'disabled':''}>${p.qtyPrice2Qty} EACH</button>`:''}${p.crtPrice!=null?`<button type="button" class="secondary" data-add-crt="${p.id}">CRT</button>`:''}</div></div>`).join('')||'<div class="muted">Geen product gevonden.</div>';
   

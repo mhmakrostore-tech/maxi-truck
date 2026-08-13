@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#111827">
   <title>Maxi-Truck</title>
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css?v=38">
+  <link rel="stylesheet" href="style.css?v=40">
 
   <style>
     #backToTopBtn{
@@ -79,6 +79,14 @@
             <button id="clearProductSearchBtn" type="button" class="secondary">Wissen</button>
           </div>
         </label>
+        <label>Categorie
+          <select id="saleCategoryFilter">
+            <option value="">ALLE CATEGORIEËN</option>
+            <option value="CANDY">CANDY</option>
+            <option value="TOPPERS">TOPPERS</option>
+            <option value="FOOD">FOOD</option>
+          </select>
+        </label>
       </div>
       <p class="muted" style="margin-bottom:0">Zoeken werkt direct tijdens het typen op productnaam én code.</p>
     </div>
@@ -100,7 +108,7 @@
       <div class="actions">
         <button id="saveSaleBtn">Verkoop opslaan</button>
         <button id="printSaleBtn" class="secondary">Factuur printen</button>
-        <button id="clearCartBtn" class="danger ghost">Leegmaken</button>
+        <button id="clearCartBtn" class="danger ghost">CLEAR</button>
       </div>
     </div>
 
@@ -121,6 +129,13 @@
         </label>
         <label>Naam product
           <input id="pName" placeholder="Productnaam">
+        </label>
+        <label>Categorie
+          <select id="pCategory">
+            <option value="CANDY">CANDY</option>
+            <option value="TOPPERS">TOPPERS</option>
+            <option value="FOOD">FOOD</option>
+          </select>
         </label>
         <label>Foto product
           <input id="pPhoto" type="file" accept="image/*" capture="environment">
@@ -308,8 +323,8 @@
 <button id="backToTopBtn" type="button" aria-label="Naar boven" title="Naar boven">↑</button>
 
 
-<script type="module" src="firebase-app.js?v=38"></script>
+<script type="module" src="firebase-app.js?v=40"></script>
 
-<script type="module" src="app.js?v=38"></script>
+<script type="module" src="app.js?v=40"></script>
 </body>
 </html>

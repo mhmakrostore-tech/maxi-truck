@@ -1,11 +1,12 @@
-MAXI-TRUCK UPDATE v38
+MAXI-TRUCK UPDATE v40
 
 Nieuw:
-- In de Winkelmand / Factuur hoef je het aantal niet meer handmatig te wissen.
-- Gebruik de min-knop (−) om 1 af te trekken.
-- Gebruik de plus-knop (+) om 1 op te tellen.
-- Het systeem controleert bij verhogen automatisch of er genoeg voorraad is.
-- Alle functies uit v37 blijven behouden.
+- 3 productcategorieën: CANDY, TOPPERS, FOOD.
+- Bij Product toevoegen/wijzigen kies je de categorie.
+- Bij SALES kun je filteren op ALLE CATEGORIEËN, CANDY, TOPPERS of FOOD.
+- De categorie wordt bij het product in SALES getoond.
+- Bestaande producten zonder categorie worden voorlopig als CANDY behandeld.
+- Alle functies uit v39 blijven behouden.
 
 Vervang in GitHub:
 - app.js
