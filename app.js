@@ -879,15 +879,59 @@ function renderCart(){
   const table=document.getElementById('cartTable');
   if(cart.length===0){empty.classList.remove('hidden');table.classList.add('hidden');}
   else{empty.classList.add('hidden');table.classList.remove('hidden');}
-  body.innerHTML=cart.map((l,i)=>`<tr><td><strong>${esc(l.code)}</strong></td><td>${esc(l.name)} <span class="unit-badge">${esc(l.label||l.unit)}</span>${l.unit==='CRT'?`<div class="muted">${l.unitsPerSale} PCS per CRT${l.freePerCrt?` + ${l.freePerCrt} FREE`:''}</div>`:''}</td><td><input style="width:75px" type="number" min="1" value="${l.qty}" data-qty="${i}"></td><td>${money(l.price)}</td><td>${money(l.price*l.qty)}</td><td><button class="danger icon-btn" data-remove="${i}">X</button></td></tr>`).join('');
-  body.querySelectorAll('[data-qty]').forEach(inp=>inp.onchange=()=>{
-    const i=Number(inp.dataset.qty), l=cart[i], p=products.find(x=>x.id===l.productId);
-    let q=Math.max(1,Number(inp.value)||1);
-    const maxQty=p?Math.floor(Number(p.stock||0)/Number(l.stockUnitsPerSale||l.unitsPerSale||1)):q;
-    if(q>maxQty){q=Math.max(1,maxQty);showToast('Aantal aangepast aan beschikbare voorraad.');}
-    l.qty=q; renderCart();
+
+  body.innerHTML=cart.map((l,i)=>`
+    <tr>
+      <td><strong>${esc(l.code)}</strong></td>
+      <td>
+        ${esc(l.name)} <span class="unit-badge">${esc(l.label||l.unit)}</span>
+        ${l.unit==='CRT'?`<div class="muted">${l.unitsPerSale} PCS per CRT${l.freePerCrt?` + ${l.freePerCrt} FREE`:''}</div>`:''}
+      </td>
+      <td>
+        <div class="qty-stepper">
+          <button type="button" class="qty-btn" data-dec="${i}" aria-label="Aantal verlagen">−</button>
+          <span class="qty-value">${Number(l.qty||1)}</span>
+          <button type="button" class="qty-btn" data-inc="${i}" aria-label="Aantal verhogen">+</button>
+        </div>
+      </td>
+      <td>${money(l.price)}</td>
+      <td>${money(l.price*l.qty)}</td>
+      <td><button class="danger icon-btn" data-remove="${i}">X</button></td>
+    </tr>
+  `).join('');
+
+  body.querySelectorAll('[data-dec]').forEach(b=>b.onclick=()=>{
+    const i=Number(b.dataset.dec);
+    const l=cart[i];
+    if(!l) return;
+    l.qty=Math.max(1,Number(l.qty||1)-1);
+    renderCart();
   });
-  body.querySelectorAll('[data-remove]').forEach(b=>b.onclick=()=>{cart.splice(Number(b.dataset.remove),1);renderCart();});
+
+  body.querySelectorAll('[data-inc]').forEach(b=>b.onclick=()=>{
+    const i=Number(b.dataset.inc);
+    const l=cart[i];
+    if(!l) return;
+
+    const p=products.find(x=>x.id===l.productId);
+    const nextQty=Number(l.qty||1)+1;
+    const unitsPerSale=Number(l.stockUnitsPerSale||l.unitsPerSale||1);
+    const pcsNeeded=nextQty*unitsPerSale;
+
+    if(p && pcsNeeded>Number(p.stock||0)){
+      showToast('Niet genoeg voorraad om het aantal te verhogen.');
+      return;
+    }
+
+    l.qty=nextQty;
+    renderCart();
+  });
+
+  body.querySelectorAll('[data-remove]').forEach(b=>b.onclick=()=>{
+    cart.splice(Number(b.dataset.remove),1);
+    renderCart();
+  });
+
   const subtotal=cart.reduce((s,l)=>s+calcLine(l).subtotal,0);
   const obTotal=cart.reduce((s,l)=>s+calcLine(l).obAmount,0);
   document.getElementById('cartSubtotal').textContent=money(subtotal);
