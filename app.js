@@ -5,7 +5,7 @@ window.addEventListener('unhandledrejection',e=>{
 import {
   auth, db, googleProvider,
   signInWithPopup, signInWithEmailAndPassword, onAuthStateChanged, signOut,
-  collection, doc, getDocs, setDoc, addDoc, deleteDoc, updateDoc
+  collection, doc, getDocs, setDoc, addDoc, deleteDoc, updateDoc, query, where
 } from './firebase-app.js';
 
 const ADMIN_EMAIL = 'mh.makrostore@gmail.com';
@@ -340,9 +340,11 @@ document.getElementById('addCustomerBtn').onclick=async()=>{
 
 function renderCustomers(){
   const el=document.getElementById('customersList');
+  if(!el) return;
+
   const q=(document.getElementById('customerSearch')?.value||'').toLowerCase().trim();
-let arr=customers.slice().sort((a,b)=>a.name.localeCompare(b.name));
-if(q) arr=arr.filter(c=>c.name.toLowerCase().startsWith(q));
+  let arr=customers.slice().sort((a,b)=>a.name.localeCompare(b.name));
+  if(q) arr=arr.filter(c=>c.name.toLowerCase().startsWith(q));
 
   el.innerHTML=arr.length?arr.map(c=>`
     <div class="customer-row">
@@ -352,7 +354,7 @@ if(q) arr=arr.filter(c=>c.name.toLowerCase().startsWith(q));
         <button class="danger icon-btn" data-del-customer="${c.id}">Verwijderen</button>
       `:''}
     </div>
-  `).join(''):'<div class="muted">Nog geen klanten.</div>';
+  `).join(''):'<div class="muted">Geen klanten gevonden.</div>';
 
   el.querySelectorAll('[data-customer-history]').forEach(b=>{
     b.onclick=()=>{
@@ -369,28 +371,24 @@ if(q) arr=arr.filter(c=>c.name.toLowerCase().startsWith(q));
   });
 }
 
-const customerSearch = document.getElementById('customerSearch');
-
-if (customerSearch) {
-  customerSearch.addEventListener('input', () => {
-    renderCustomers();
-  });
+const customerSearch=document.getElementById('customerSearch');
+if(customerSearch){
+  customerSearch.addEventListener('input',renderCustomers);
 }
 
 function customerPurchaseData(customerName){
+  const key=String(customerName||'').trim().toLowerCase();
   const customerSales=sales.filter(
-    s=>String(s.customer||'').trim().toLowerCase()===String(customerName||'').trim().toLowerCase()
+    s=>String(s.customer||'').trim().toLowerCase()===key
   );
-
   const grouped={};
 
   customerSales.forEach(s=>{
     (s.lines||[]).forEach(l=>{
       const unit=l.label||l.unit||'EACH';
-      const key=(l.productId||l.code||l.name)+'_'+unit;
-
-      if(!grouped[key]){
-        grouped[key]={
+      const groupKey=(l.productId||l.code||l.name||'')+'_'+unit;
+      if(!grouped[groupKey]){
+        grouped[groupKey]={
           code:l.code||'',
           name:l.name||'',
           unit,
@@ -399,27 +397,26 @@ function customerPurchaseData(customerName){
           lastDate:s.createdAt||s.date||''
         };
       }
-
-      grouped[key].qty+=Number(l.qty||0);
-      grouped[key].total+=Number(l.total ?? ((l.subtotal ?? (l.price*l.qty))+(l.obAmount||0)));
-
+      grouped[groupKey].qty+=Number(l.qty||0);
+      grouped[groupKey].total+=Number(
+        l.total ?? ((l.subtotal ?? (Number(l.price||0)*Number(l.qty||0))) + Number(l.obAmount||0))
+      );
       const d=s.createdAt||s.date||'';
-      if(String(d)>String(grouped[key].lastDate||'')){
-        grouped[key].lastDate=d;
-      }
+      if(String(d)>String(grouped[groupKey].lastDate||'')) grouped[groupKey].lastDate=d;
     });
   });
 
   return {
     sales:customerSales,
-    products:Object.values(grouped).sort((a,b)=>a.name.localeCompare(b.name)),
+    products:Object.values(grouped).sort((a,b)=>
+      a.name.localeCompare(b.name) || String(a.unit).localeCompare(String(b.unit))
+    ),
     total:customerSales.reduce((sum,s)=>sum+Number(s.total||0),0)
   };
 }
 
 function showCustomerPurchaseOverview(customerName){
   if(currentRole!=='admin') return;
-
   const data=customerPurchaseData(customerName);
 
   document.getElementById('customerPurchaseOverlay')?.remove();
@@ -429,15 +426,14 @@ function showCustomerPurchaseOverview(customerName){
   overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;padding:20px;overflow:auto';
 
   overlay.innerHTML=`
-    <div style="background:white;max-width:1000px;margin:20px auto;padding:24px;border-radius:16px">
-      <div style="display:flex;justify-content:space-between;gap:10px;align-items:center">
+    <div style="background:#fff;max-width:1000px;margin:20px auto;padding:24px;border-radius:16px">
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap">
         <h2 style="margin:0">Aankoopoverzicht — ${esc(customerName)}</h2>
         <button id="closeCustomerPurchase" class="danger icon-btn">Sluiten</button>
       </div>
 
       ${data.sales.length?`
         <p><strong>Aantal bestellingen:</strong> ${data.sales.length}</p>
-
         <div style="overflow:auto">
           <table>
             <thead>
@@ -464,45 +460,31 @@ function showCustomerPurchaseOverview(customerName){
             </tbody>
           </table>
         </div>
-
         <h3 style="text-align:right">Totaal besteed: ${money(data.total)}</h3>
-
-        <button id="printCustomerPurchase" class="secondary">
-          Print klantoverzicht
-        </button>
+        <button id="printCustomerPurchase" class="secondary">Print klantoverzicht</button>
       `:`<p class="muted">Geen oude bestellingen gevonden voor deze klant.</p>`}
     </div>
   `;
 
   document.body.appendChild(overlay);
-
   document.getElementById('closeCustomerPurchase').onclick=()=>overlay.remove();
 
   const printBtn=document.getElementById('printCustomerPurchase');
-  if(printBtn){
-    printBtn.onclick=()=>printCustomerPurchaseOverview(customerName);
-  }
+  if(printBtn) printBtn.onclick=()=>printCustomerPurchaseOverview(customerName);
 }
 
 function printCustomerPurchaseOverview(customerName){
   const data=customerPurchaseData(customerName);
-
   printHtml(`
     <h1>Maxi-Truck — Klant aankoopoverzicht</h1>
     <p><strong>Klant:</strong> ${esc(customerName)}</p>
     <p><strong>Datum rapport:</strong> ${new Date().toLocaleDateString('nl-NL')}</p>
     <p><strong>Aantal bestellingen:</strong> ${data.sales.length}</p>
-
     <table>
       <tr>
-        <th>Code</th>
-        <th>Product</th>
-        <th>Eenheid</th>
-        <th>Totaal gekocht</th>
-        <th>Laatste aankoop</th>
-        <th>Bedrag</th>
+        <th>Code</th><th>Product</th><th>Eenheid</th>
+        <th>Totaal gekocht</th><th>Laatste aankoop</th><th>Bedrag</th>
       </tr>
-
       ${data.products.map(p=>`
         <tr>
           <td>${esc(p.code)}</td>
@@ -514,10 +496,10 @@ function printCustomerPurchaseOverview(customerName){
         </tr>
       `).join('')}
     </table>
-
     <h2 style="text-align:right">Totaal besteed: ${money(data.total)}</h2>
   `);
 }
+
 
 function fillProductForm(p){
   if(!p) return;
@@ -754,8 +736,32 @@ function renderProducts(){
 document.getElementById('productSearch').addEventListener('input',renderProductSearch);
 function renderProductSearch(){
   const q=document.getElementById('productSearch').value.toLowerCase().trim();
-  let arr=products.slice().sort((a,b)=>a.name.localeCompare(b.name));
-  if(q) arr=arr.filter(p=>p.name.toLowerCase().includes(q)||String(p.code).toLowerCase().includes(q));
+  const words=q.split(/\s+/).filter(Boolean);
+
+  let arr=products.slice().filter(p=>{
+    if(!words.length) return true;
+    const hay=(String(p.name||'')+' '+String(p.code||'')).toLowerCase();
+    return words.every(w=>hay.includes(w));
+  });
+
+  arr.sort((a,b)=>{
+    if(!q) return a.name.localeCompare(b.name);
+    const an=String(a.name||'').toLowerCase();
+    const bn=String(b.name||'').toLowerCase();
+    const ac=String(a.code||'').toLowerCase();
+    const bc=String(b.code||'').toLowerCase();
+
+    const score=(name,code)=>{
+      if(code===q) return 0;
+      if(name===q) return 1;
+      if(code.startsWith(q)) return 2;
+      if(name.startsWith(q)) return 3;
+      if(name.split(/\s+/).some(w=>w.startsWith(q))) return 4;
+      return 5;
+    };
+
+    return score(an,ac)-score(bn,bc) || an.localeCompare(bn);
+  });
   document.getElementById('productResults').innerHTML=arr.map(p=>`<div class="product-card">${p.photo?`<img class="product-card-photo" src="${p.photo}" alt="">`:''}<strong>${esc(p.name)}</strong><div><strong>${money(p.price)}</strong> <span class="muted">(EACH, excl. OB)</span></div>${p.p12Price!=null?`<div><strong>${money(p.p12Price)}</strong> <span class="muted">(P12, excl. OB)</span></div>`:''}${p.qtyPrice1Qty!=null?`<div><strong>${money(p.qtyPrice1Price)}</strong> <span class="muted">(${p.qtyPrice1Qty} EACH, excl. OB)</span></div>`:''}${p.qtyPrice2Qty!=null?`<div><strong>${money(p.qtyPrice2Price)}</strong> <span class="muted">(${p.qtyPrice2Qty} EACH, excl. OB)</span></div>`:''}${p.crtPrice!=null?`<div><strong>${money(p.crtPrice)}</strong> <span class="muted">(CRT ${p.crtPcs} PCS, excl. OB)</span>${p.crtFree?` <span class="free-badge">+ 1 FREE</span>`:''}</div>`:''}<div class="sale-choice">
 <input class="sale-qty-input" id="saleQty-${p.id}" type="number" min="1" step="1" value="1" inputmode="numeric" aria-label="Aantal">
 <button type="button" data-add-each="${p.id}" ${p.stock<=0?'disabled':''}>EACH</button>${p.p12Price!=null?`<button type="button" class="secondary" data-add-p12="${p.id}" ${p.stock<12?'disabled':''}>P12</button>`:''}${p.qtyPrice1Qty!=null?`<button type="button" class="secondary" data-add-deal1="${p.id}" ${p.stock<p.qtyPrice1Qty?'disabled':''}>${p.qtyPrice1Qty} EACH</button>`:''}${p.qtyPrice2Qty!=null?`<button type="button" class="secondary" data-add-deal2="${p.id}" ${p.stock<p.qtyPrice2Qty?'disabled':''}>${p.qtyPrice2Qty} EACH</button>`:''}${p.crtPrice!=null?`<button type="button" class="secondary" data-add-crt="${p.id}">CRT</button>`:''}</div></div>`).join('')||'<div class="muted">Geen product gevonden.</div>';
@@ -1057,6 +1063,24 @@ function printHtml(html){
   w.document.write(`<!doctype html><html><head><title>Maxi-Truck</title><style>body{font-family:Arial;padding:24px}table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px solid #ddd;text-align:left}</style></head><body>${html}</body></html>`);
   w.document.close(); w.focus(); setTimeout(()=>w.print(),300);
 }
+
+
+document.getElementById('clearProductSearchBtn')?.addEventListener('click',()=>{
+  const el=document.getElementById('productSearch');
+  if(!el) return;
+  el.value='';
+  renderProductSearch();
+  el.focus();
+});
+
+document.getElementById('backToTopBtn')?.addEventListener('click',()=>{
+  window.scrollTo({top:0,behavior:'smooth'});
+});
+
+window.addEventListener('scroll',()=>{
+  const btn=document.getElementById('backToTopBtn');
+  if(btn) btn.style.display=window.scrollY>350?'block':'none';
+});
 
 if('serviceWorker' in navigator){
   window.addEventListener('load',async()=>{

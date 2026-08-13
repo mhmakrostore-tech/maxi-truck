@@ -6,7 +6,20 @@
   <meta name="theme-color" content="#111827">
   <title>Maxi-Truck</title>
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css?v=33">
+  <link rel="stylesheet" href="style.css?v=36">
+
+  <style>
+    #backToTopBtn{
+      position:fixed;right:18px;bottom:18px;z-index:5000;
+      width:52px;height:52px;border-radius:50%;font-size:24px;
+      box-shadow:0 6px 20px rgba(0,0,0,.25);display:none;
+    }
+    #customerSearch{margin-bottom:12px}
+    #productSearch{font-size:1.05rem}
+    @media(max-width:700px){
+      #backToTopBtn{right:12px;bottom:12px;width:48px;height:48px}
+    }
+  </style>
 </head>
 <body>
 
@@ -56,15 +69,18 @@
           <input id="saleCustomer" list="customerList" placeholder="Typ klantnaam">
           <datalist id="customerList"></datalist>
         </label>
-        <label>Zoek product / code
-          <input id="productSearch" placeholder="Naam of code">
+        <label>Zoek product
+          <div style="display:grid;grid-template-columns:1fr auto;gap:8px">
+            <input id="productSearch" autocomplete="off" placeholder="Typ naam, eerste letters of code">
+            <button id="clearProductSearchBtn" type="button" class="secondary">Wissen</button>
+          </div>
         </label>
       </div>
-      <div id="productResults" class="product-results"></div>
+      <p class="muted" style="margin-bottom:0">Zoeken werkt direct tijdens het typen op productnaam én code.</p>
     </div>
 
-    <div class="card">
-      <h2>Factuur</h2>
+    <div class="card" id="invoiceCard">
+      <h2>Winkelmand / Factuur</h2>
       <div id="cartEmpty" class="muted">Nog geen producten toegevoegd.</div>
       <div class="table-wrap">
         <table id="cartTable" class="hidden">
@@ -82,6 +98,11 @@
         <button id="printSaleBtn" class="secondary">Factuur printen</button>
         <button id="clearCartBtn" class="danger ghost">Leegmaken</button>
       </div>
+    </div>
+
+    <div class="card">
+      <h2>Producten</h2>
+      <div id="productResults" class="product-results"></div>
     </div>
   </section>
 
@@ -221,7 +242,7 @@
     </div>
     <div class="card">
       <h2>Klanten</h2>
-     <input id="customerSearch" type="text" placeholder="Zoek klant op naam...">
+      <input id="customerSearch" type="search" autocomplete="off" placeholder="Zoek klant op naam...">
       <div id="customersList"></div>
     </div>
   </section>
@@ -280,10 +301,11 @@
 </div>
 
 <div id="toast" class="toast hidden"></div>
+<button id="backToTopBtn" type="button" aria-label="Naar boven" title="Naar boven">↑</button>
 
 
-<script type="module" src="firebase-app.js?v=33"></script>
+<script type="module" src="firebase-app.js?v=36"></script>
 
-<script type="module" src="app.js?v=35"></script>
+<script type="module" src="app.js?v=36"></script>
 </body>
 </html>

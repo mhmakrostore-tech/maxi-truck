@@ -1,0 +1,21 @@
+MAXI-TRUCK UPDATE v36
+
+Vervang in GitHub alleen:
+- app.js
+- index.html
+
+style.css hoeft NIET aangepast te worden.
+
+Nieuw:
+- Winkelmand / Factuur staat boven de productlijst bij Verkoop.
+- Vaste pijl rechtsonder om direct naar boven te gaan.
+- Product zoeken is makkelijker: naam, eerste letters, meerdere woorden en code.
+- Wis-knop naast product zoeken.
+- Klanten zoeken op eerste letters blijft behouden.
+- Klant aankoopoverzicht + printfunctie blijft behouden.
+
+Na upload:
+1. Commit changes.
+2. Wacht ongeveer 1 minuut.
+3. Open Maxi-Truck.
+4. Ctrl + F5.
