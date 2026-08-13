@@ -340,7 +340,9 @@ document.getElementById('addCustomerBtn').onclick=async()=>{
 
 function renderCustomers(){
   const el=document.getElementById('customersList');
-  const arr=customers.slice().sort((a,b)=>a.name.localeCompare(b.name));
+  const q=(document.getElementById('customerSearch')?.value||'').toLowerCase().trim();
+let arr=customers.slice().sort((a,b)=>a.name.localeCompare(b.name));
+if(q) arr=arr.filter(c=>c.name.toLowerCase().startsWith(q));
 
   el.innerHTML=arr.length?arr.map(c=>`
     <div class="customer-row">
@@ -364,6 +366,14 @@ function renderCustomers(){
     customers=customers.filter(c=>c.id!==b.dataset.delCustomer);
     renderCustomers();
     renderCustomersDatalist();
+  });
+}
+
+const customerSearch = document.getElementById('customerSearch');
+
+if (customerSearch) {
+  customerSearch.addEventListener('input', () => {
+    renderCustomers();
   });
 }
 
