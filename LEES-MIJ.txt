@@ -1,15 +1,16 @@
-MAXI-TRUCK UPDATE v40
+MAXI-TRUCK UPDATE v41
 
 Nieuw:
-- 3 productcategorieën: CANDY, TOPPERS, FOOD.
-- Bij Product toevoegen/wijzigen kies je de categorie.
-- Bij SALES kun je filteren op ALLE CATEGORIEËN, CANDY, TOPPERS of FOOD.
-- De categorie wordt bij het product in SALES getoond.
-- Bestaande producten zonder categorie worden voorlopig als CANDY behandeld.
-- Alle functies uit v39 blijven behouden.
+- Verkoop/tablet hoeft niet meer handmatig te refreshen na wijzigingen van de beheerder.
+- Producten, prijzen, categorieën, voorraad, klanten en verkopen worden automatisch gecontroleerd.
+- Wijzigingen verschijnen normaal binnen ongeveer 5 seconden.
+- Zodra de app/tab weer actief wordt, controleert hij direct opnieuw.
+- Zoekveld en winkelmand blijven gewoon bruikbaar tijdens synchronisatie.
+- Alle functies uit v40 blijven behouden.
 
 Vervang in GitHub:
 - app.js
 - index.html
 
-Daarna Commit changes, ongeveer 1 minuut wachten en Ctrl + F5.
+Daarna Commit changes, ongeveer 1 minuut wachten en één keer Ctrl + F5.
+Daarna hoeft handmatig refreshen bij latere beheerderwijzigingen niet meer.

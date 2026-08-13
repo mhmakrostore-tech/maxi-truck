@@ -212,6 +212,7 @@ onAuthStateChanged(auth,user=>user?showApp(user):hideApp());
 
 async function loadAll(){
   await Promise.all([loadProducts(),loadCustomers(),loadSales()]);
+  rememberAutoSyncState();
   renderAll();
   await showPendingPriceChanges();
 }
@@ -228,6 +229,110 @@ async function loadSales(){
   const snap=await getDocs(collection(db,'sales'));
   sales=snap.docs.map(d=>({id:d.id,...d.data()}));
 }
+
+
+let autoSyncBusy=false;
+let autoSyncProductSig='';
+let autoSyncCustomerSig='';
+let autoSyncSalesSig='';
+
+function dataSignature(arr, fields){
+  return arr
+    .map(x=>fields.map(f=>JSON.stringify(x?.[f]??null)).join('|'))
+    .sort()
+    .join('||');
+}
+
+function currentProductSignature(){
+  return dataSignature(products,[
+    'id','code','name','category','price','p12Price','qtyPrice1Qty','qtyPrice1Price',
+    'qtyPrice2Qty','qtyPrice2Price','crtPrice','crtPcs','crtFree','stock',
+    'commission','commissionBase','tpP12CommissionBase','tpCrtCommissionBase',
+    'tpCommission','ob','photo'
+  ]);
+}
+
+function currentCustomerSignature(){
+  return dataSignature(customers,['id','name']);
+}
+
+function currentSalesSignature(){
+  return dataSignature(sales,['id','invoiceNumber','date','createdAt','customer','total']);
+}
+
+function rememberAutoSyncState(){
+  autoSyncProductSig=currentProductSignature();
+  autoSyncCustomerSig=currentCustomerSignature();
+  autoSyncSalesSig=currentSalesSignature();
+}
+
+async function autoSyncFromFirestore(){
+  if(!currentUser || autoSyncBusy || !navigator.onLine) return;
+  autoSyncBusy=true;
+
+  try{
+    const [productSnap,customerSnap,salesSnap]=await Promise.all([
+      getDocs(collection(db,'products')),
+      getDocs(collection(db,'customers')),
+      getDocs(collection(db,'sales'))
+    ]);
+
+    const newProducts=productSnap.docs.map(d=>({id:d.id,...d.data()}));
+    const newCustomers=customerSnap.docs.map(d=>({id:d.id,...d.data()}));
+    const newSales=salesSnap.docs.map(d=>({id:d.id,...d.data()}));
+
+    const productSig=dataSignature(newProducts,[
+      'id','code','name','category','price','p12Price','qtyPrice1Qty','qtyPrice1Price',
+      'qtyPrice2Qty','qtyPrice2Price','crtPrice','crtPcs','crtFree','stock',
+      'commission','commissionBase','tpP12CommissionBase','tpCrtCommissionBase',
+      'tpCommission','ob','photo'
+    ]);
+    const customerSig=dataSignature(newCustomers,['id','name']);
+    const salesSig=dataSignature(newSales,['id','invoiceNumber','date','createdAt','customer','total']);
+
+    const productsChanged=productSig!==autoSyncProductSig;
+    const customersChanged=customerSig!==autoSyncCustomerSig;
+    const salesChanged=salesSig!==autoSyncSalesSig;
+
+    if(productsChanged){
+      products=newProducts;
+      autoSyncProductSig=productSig;
+      renderProducts();
+      renderProductSearch();
+      renderRestock();
+    }
+
+    if(customersChanged){
+      customers=newCustomers;
+      autoSyncCustomerSig=customerSig;
+      renderCustomers();
+      renderCustomersDatalist();
+    }
+
+    if(salesChanged){
+      sales=newSales;
+      autoSyncSalesSig=salesSig;
+      renderHistory();
+      renderClosing();
+    }
+
+    if(productsChanged || customersChanged || salesChanged){
+      showToast('Wijzigingen automatisch bijgewerkt.');
+    }
+  }catch(e){
+    console.warn('Automatisch synchroniseren mislukt:',e);
+  }finally{
+    autoSyncBusy=false;
+  }
+}
+
+// Controleert automatisch op wijzigingen van de beheerder.
+// Geen handmatige refresh meer nodig op de verkoop/tablet.
+setInterval(autoSyncFromFirestore,5000);
+window.addEventListener('focus',autoSyncFromFirestore);
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden) autoSyncFromFirestore();
+});
 
 function renderAll(){
   renderProducts(); renderProductSearch(); renderCustomers(); renderCustomersDatalist(); renderHistory(); renderClosing(); renderCart(); renderRestock();
@@ -335,7 +440,7 @@ document.getElementById('addCustomerBtn').onclick=async()=>{
   if(!name) return;
   if(customers.some(c=>c.name.toLowerCase()===name.toLowerCase())){showToast('Deze klant bestaat al.');return;}
   const ref=await addDoc(collection(db,'customers'),{name});
-  customers.push({id:ref.id,name}); document.getElementById('newCustomer').value=''; renderCustomers(); renderCustomersDatalist();
+  customers.push({id:ref.id,name}); autoSyncCustomerSig=currentCustomerSignature(); document.getElementById('newCustomer').value=''; renderCustomers(); renderCustomersDatalist();
 };
 
 function renderCustomers(){
@@ -366,6 +471,7 @@ function renderCustomers(){
   el.querySelectorAll('[data-del-customer]').forEach(b=>b.onclick=async()=>{
     await deleteDoc(doc(db,'customers',b.dataset.delCustomer));
     customers=customers.filter(c=>c.id!==b.dataset.delCustomer);
+    autoSyncCustomerSig=currentCustomerSignature();
     renderCustomers();
     renderCustomersDatalist();
   });
@@ -709,6 +815,7 @@ document.getElementById('saveProductBtn').onclick=async()=>{
     }
   }
   await loadProducts();
+  autoSyncProductSig=currentProductSignature();
   resetProductForm();
   renderProducts();
   renderProductSearch();
@@ -1016,6 +1123,8 @@ async function saveCurrentSale({printAfter=false}={}){
   const printable={...sale};
   cart=[]; currentInvoiceId=makeId('inv');
   document.getElementById('saleCustomer').value='';
+  autoSyncProductSig=currentProductSignature();
+  autoSyncSalesSig=currentSalesSignature();
   renderAll();
   showToast(navigator.onLine?'Invoice opgeslagen.':'Invoice offline opgeslagen; synchroniseert later.');
   if(printAfter) printSavedInvoice(printable);
