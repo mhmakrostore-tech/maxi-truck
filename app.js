@@ -508,15 +508,7 @@ function printCustomerPurchaseOverview(customerName){
     <h2 style="text-align:right">Totaal besteed: ${money(data.total)}</h2>
   `);
 }
-function renderCustomersDatalist(){
-  const el=document.getElementById('customerList');
-  if(!el) return;
-  el.innerHTML=customers
-    .slice()
-    .sort((a,b)=>a.name.localeCompare(b.name))
-    .map(c=>`<option value="${esc(c.name)}"></option>`)
-    .join('');
-}
+
 function fillProductForm(p){
   if(!p) return;
   document.getElementById('productId').value=p.id;
