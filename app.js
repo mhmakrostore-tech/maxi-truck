@@ -341,14 +341,182 @@ document.getElementById('addCustomerBtn').onclick=async()=>{
 function renderCustomers(){
   const el=document.getElementById('customersList');
   const arr=customers.slice().sort((a,b)=>a.name.localeCompare(b.name));
-  el.innerHTML=arr.length?arr.map(c=>`<div class="customer-row"><strong>${esc(c.name)}</strong>${currentRole==='admin'?`<button class="danger icon-btn" data-del-customer="${c.id}">Verwijderen</button>`:''}</div>`).join(''):'<div class="muted">Nog geen klanten.</div>';
+
+  el.innerHTML=arr.length?arr.map(c=>`
+    <div class="customer-row">
+      <strong>${esc(c.name)}</strong>
+      ${currentRole==='admin'?`
+        <button class="icon-btn" data-customer-history="${c.id}">Overzicht</button>
+        <button class="danger icon-btn" data-del-customer="${c.id}">Verwijderen</button>
+      `:''}
+    </div>
+  `).join(''):'<div class="muted">Nog geen klanten.</div>';
+
+  el.querySelectorAll('[data-customer-history]').forEach(b=>{
+    b.onclick=()=>{
+      const c=customers.find(x=>x.id===b.dataset.customerHistory);
+      if(c) showCustomerPurchaseOverview(c.name);
+    };
+  });
+
   el.querySelectorAll('[data-del-customer]').forEach(b=>b.onclick=async()=>{
     await deleteDoc(doc(db,'customers',b.dataset.delCustomer));
-    customers=customers.filter(c=>c.id!==b.dataset.delCustomer); renderCustomers(); renderCustomersDatalist();
+    customers=customers.filter(c=>c.id!==b.dataset.delCustomer);
+    renderCustomers();
+    renderCustomersDatalist();
   });
 }
 
+function customerPurchaseData(customerName){
+  const customerSales=sales.filter(
+    s=>String(s.customer||'').trim().toLowerCase()===String(customerName||'').trim().toLowerCase()
+  );
 
+  const grouped={};
+
+  customerSales.forEach(s=>{
+    (s.lines||[]).forEach(l=>{
+      const unit=l.label||l.unit||'EACH';
+      const key=(l.productId||l.code||l.name)+'_'+unit;
+
+      if(!grouped[key]){
+        grouped[key]={
+          code:l.code||'',
+          name:l.name||'',
+          unit,
+          qty:0,
+          total:0,
+          lastDate:s.createdAt||s.date||''
+        };
+      }
+
+      grouped[key].qty+=Number(l.qty||0);
+      grouped[key].total+=Number(l.total ?? ((l.subtotal ?? (l.price*l.qty))+(l.obAmount||0)));
+
+      const d=s.createdAt||s.date||'';
+      if(String(d)>String(grouped[key].lastDate||'')){
+        grouped[key].lastDate=d;
+      }
+    });
+  });
+
+  return {
+    sales:customerSales,
+    products:Object.values(grouped).sort((a,b)=>a.name.localeCompare(b.name)),
+    total:customerSales.reduce((sum,s)=>sum+Number(s.total||0),0)
+  };
+}
+
+function showCustomerPurchaseOverview(customerName){
+  if(currentRole!=='admin') return;
+
+  const data=customerPurchaseData(customerName);
+
+  document.getElementById('customerPurchaseOverlay')?.remove();
+
+  const overlay=document.createElement('div');
+  overlay.id='customerPurchaseOverlay';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;padding:20px;overflow:auto';
+
+  overlay.innerHTML=`
+    <div style="background:white;max-width:1000px;margin:20px auto;padding:24px;border-radius:16px">
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:center">
+        <h2 style="margin:0">Aankoopoverzicht — ${esc(customerName)}</h2>
+        <button id="closeCustomerPurchase" class="danger icon-btn">Sluiten</button>
+      </div>
+
+      ${data.sales.length?`
+        <p><strong>Aantal bestellingen:</strong> ${data.sales.length}</p>
+
+        <div style="overflow:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Product</th>
+                <th>Eenheid</th>
+                <th>Totaal gekocht</th>
+                <th>Laatste aankoop</th>
+                <th>Bedrag</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${data.products.map(p=>`
+                <tr>
+                  <td>${esc(p.code)}</td>
+                  <td>${esc(p.name)}</td>
+                  <td>${esc(p.unit)}</td>
+                  <td>${p.qty}</td>
+                  <td>${p.lastDate?new Date(p.lastDate).toLocaleDateString('nl-NL'):'-'}</td>
+                  <td>${money(p.total)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+
+        <h3 style="text-align:right">Totaal besteed: ${money(data.total)}</h3>
+
+        <button id="printCustomerPurchase" class="secondary">
+          Print klantoverzicht
+        </button>
+      `:`<p class="muted">Geen oude bestellingen gevonden voor deze klant.</p>`}
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  document.getElementById('closeCustomerPurchase').onclick=()=>overlay.remove();
+
+  const printBtn=document.getElementById('printCustomerPurchase');
+  if(printBtn){
+    printBtn.onclick=()=>printCustomerPurchaseOverview(customerName);
+  }
+}
+
+function printCustomerPurchaseOverview(customerName){
+  const data=customerPurchaseData(customerName);
+
+  printHtml(`
+    <h1>Maxi-Truck — Klant aankoopoverzicht</h1>
+    <p><strong>Klant:</strong> ${esc(customerName)}</p>
+    <p><strong>Datum rapport:</strong> ${new Date().toLocaleDateString('nl-NL')}</p>
+    <p><strong>Aantal bestellingen:</strong> ${data.sales.length}</p>
+
+    <table>
+      <tr>
+        <th>Code</th>
+        <th>Product</th>
+        <th>Eenheid</th>
+        <th>Totaal gekocht</th>
+        <th>Laatste aankoop</th>
+        <th>Bedrag</th>
+      </tr>
+
+      ${data.products.map(p=>`
+        <tr>
+          <td>${esc(p.code)}</td>
+          <td>${esc(p.name)}</td>
+          <td>${esc(p.unit)}</td>
+          <td>${p.qty}</td>
+          <td>${p.lastDate?new Date(p.lastDate).toLocaleDateString('nl-NL'):'-'}</td>
+          <td>${money(p.total)}</td>
+        </tr>
+      `).join('')}
+    </table>
+
+    <h2 style="text-align:right">Totaal besteed: ${money(data.total)}</h2>
+  `);
+}
+function renderCustomersDatalist(){
+  const el=document.getElementById('customerList');
+  if(!el) return;
+  el.innerHTML=customers
+    .slice()
+    .sort((a,b)=>a.name.localeCompare(b.name))
+    .map(c=>`<option value="${esc(c.name)}"></option>`)
+    .join('');
+}
 function fillProductForm(p){
   if(!p) return;
   document.getElementById('productId').value=p.id;
