@@ -20,6 +20,7 @@ let cart = [];
 let currentProductPhoto = '';
 let currentInvoiceId = makeId('inv');
 let pendingPriceChanges = [];
+let restockHistory = [];
 
 const money = n => 'CG ' + Number(n || 0).toFixed(2);
 const today = () => new Date().toISOString().slice(0,10);
@@ -211,7 +212,7 @@ document.getElementById('logoutBtn').onclick=()=>signOut(auth);
 onAuthStateChanged(auth,user=>user?showApp(user):hideApp());
 
 async function loadAll(){
-  await Promise.all([loadProducts(),loadCustomers(),loadSales()]);
+  await Promise.all([loadProducts(),loadCustomers(),loadSales(),loadRestockHistory()]);
   rememberAutoSyncState();
   renderAll();
   await showPendingPriceChanges();
@@ -228,6 +229,18 @@ async function loadCustomers(){
 async function loadSales(){
   const snap=await getDocs(collection(db,'sales'));
   sales=snap.docs.map(d=>({id:d.id,...d.data()}));
+}
+
+async function loadRestockHistory(){
+  try{
+    const snap=await getDocs(collection(db,'restocks'));
+    restockHistory=snap.docs
+      .map(d=>({id:d.id,...d.data()}))
+      .sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
+  }catch(e){
+    console.warn('Voorraad-aanvulhistorie kon niet worden geladen:',e);
+    restockHistory=[];
+  }
 }
 
 
@@ -335,7 +348,7 @@ document.addEventListener('visibilitychange',()=>{
 });
 
 function renderAll(){
-  renderProducts(); renderProductSearch(); renderCustomers(); renderCustomersDatalist(); renderHistory(); renderClosing(); renderCart(); renderRestock();
+  renderProducts(); renderProductSearch(); renderCustomers(); renderCustomersDatalist(); renderHistory(); renderClosing(); renderCart(); renderRestock(); renderRestockHistory();
 }
 
 
@@ -364,6 +377,43 @@ function renderRestock(){
       if(target&&p) target.textContent=Number(p.stock||0)+add;
     });
   });
+}
+
+
+function renderRestockHistory(){
+  const el=document.getElementById('restockHistory');
+  if(!el) return;
+
+  const arr=restockHistory.slice(0,20);
+
+  if(!arr.length){
+    el.innerHTML='<div class="muted">Nog geen opgeslagen aanvullingen.</div>';
+    return;
+  }
+
+  el.innerHTML=arr.map(entry=>{
+    const d=entry.createdAt?new Date(entry.createdAt):null;
+    const dateText=d && !Number.isNaN(d.getTime())
+      ? `${d.toLocaleDateString('nl-NL')} ${d.toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'})}`
+      : '';
+
+    return `
+      <div class="sale-card">
+        <div class="sale-head">
+          <span><strong>Voorraad bijgevoegd</strong></span>
+          <span>${dateText}</span>
+        </div>
+        <div class="sale-lines">
+          ${(entry.lines||[]).map(l=>`
+            <div style="display:grid;grid-template-columns:minmax(180px,1fr) auto;gap:12px;padding:5px 0">
+              <span><strong>${esc(l.code||'')}</strong> — ${esc(l.name||'')}</span>
+              <span><strong>+${Number(l.added||0)}</strong> &nbsp; ${Number(l.oldStock||0)} → ${Number(l.newStock||0)}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
 }
 
 document.getElementById('restockFilter')?.addEventListener('input',renderRestock);
@@ -415,14 +465,44 @@ document.getElementById('saveRestockBtn')?.addEventListener('click',async()=>{
   if(changes.length===0){showToast('Vul minimaal één aantal in.');return;}
 
   try{
+    const savedLines=[];
+
     for(const ch of changes){
       const p=products.find(x=>x.id===ch.id);
       if(!p) continue;
-      p.stock=Number(p.stock||0)+ch.add;
-      await updateDoc(doc(db,'products',p.id),{stock:p.stock});
+
+      const oldStock=Number(p.stock||0);
+      const newStock=oldStock+ch.add;
+
+      p.stock=newStock;
+      await updateDoc(doc(db,'products',p.id),{stock:newStock});
+
+      savedLines.push({
+        productId:p.id,
+        code:p.code||'',
+        name:p.name||'',
+        oldStock,
+        added:ch.add,
+        newStock
+      });
     }
+
+    if(savedLines.length){
+      const historyDoc={
+        createdAt:new Date().toISOString(),
+        createdBy:currentUser?.email||'',
+        lines:savedLines
+      };
+
+      const ref=await addDoc(collection(db,'restocks'),historyDoc);
+      restockHistory.unshift({id:ref.id,...historyDoc});
+      restockHistory=restockHistory.slice(0,50);
+    }
+
+    autoSyncProductSig=currentProductSignature();
     renderAll();
-    showToast(changes.length+' voorraadregels opgeslagen.');
+    document.querySelectorAll('[data-restock]').forEach(inp=>inp.value='');
+    showToast(savedLines.length+' voorraadregels opgeslagen en toegevoegd aan historie.');
   }catch(e){
     showToast('Voorraad kon niet volledig worden opgeslagen: '+e.message);
   }

@@ -1,16 +1,16 @@
-MAXI-TRUCK UPDATE v41
+MAXI-TRUCK UPDATE v42
 
-Nieuw:
-- Verkoop/tablet hoeft niet meer handmatig te refreshen na wijzigingen van de beheerder.
-- Producten, prijzen, categorieën, voorraad, klanten en verkopen worden automatisch gecontroleerd.
-- Wijzigingen verschijnen normaal binnen ongeveer 5 seconden.
-- Zodra de app/tab weer actief wordt, controleert hij direct opnieuw.
-- Zoekveld en winkelmand blijven gewoon bruikbaar tijdens synchronisatie.
-- Alle functies uit v40 blijven behouden.
+Nieuw bij VOORRAAD AANVULLEN:
+- Na 'Alles opslaan' blijft zichtbaar wat je hebt bijgevoegd.
+- Onder de invoerlijst staat nu 'Laatst bijgevoegd'.
+- Per product zie je code, naam, hoeveel bijgevoegd, oude voorraad en nieuwe voorraad.
+- Datum en tijd worden opgeslagen.
+- Nieuwste aanvulling staat bovenaan.
+- De historie wordt in Firebase opgeslagen en blijft zichtbaar na opnieuw openen.
+- Alle functies uit v41 blijven behouden.
 
 Vervang in GitHub:
 - app.js
 - index.html
 
-Daarna Commit changes, ongeveer 1 minuut wachten en één keer Ctrl + F5.
-Daarna hoeft handmatig refreshen bij latere beheerderwijzigingen niet meer.
+Daarna Commit changes, ongeveer 1 minuut wachten en Ctrl + F5.
