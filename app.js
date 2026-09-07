@@ -8,7 +8,7 @@ import {
   collection, doc, getDocs, setDoc, addDoc, deleteDoc, updateDoc, query, where
 } from './firebase-app.js';
 
-const ADMIN_EMAIL = 'mh.makrostore@gmail.com';
+const ADMIN_EMAILS = new Set(['mh.makrostore@gmail.com','sales@maxi.com']);
 const TABLET_EMAIL = 'maxitrucktablet@maxitruck.local';
 
 let currentUser = null;
@@ -133,7 +133,8 @@ updateNetworkBadge();
 
 function showApp(user){
   currentUser=user;
-  currentRole = user.email === ADMIN_EMAIL ? 'admin' : (user.email === TABLET_EMAIL ? 'sales' : null);
+  const userEmail=String(user.email||'').toLowerCase();
+  currentRole = ADMIN_EMAILS.has(userEmail) ? 'admin' : (userEmail === TABLET_EMAIL ? 'sales' : null);
 
   if(!currentRole){
     document.getElementById('authStatus').textContent='Dit account heeft geen toegang tot Maxi-Truck.';
