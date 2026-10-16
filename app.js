@@ -920,7 +920,21 @@ function renderProducts(){
   let arr=products.slice().sort((a,b)=>a.name.localeCompare(b.name));
   if(q) arr=arr.filter(p=>p.name.toLowerCase().includes(q)||String(p.code).toLowerCase().includes(q));
   const body=document.getElementById('productsBody');
-  body.innerHTML=arr.length?arr.map(p=>`<tr><td>${p.photo?`<img class="product-thumb" src="${p.photo}" alt="">`:''}</td><td><strong>${esc(p.code)}</strong></td><td>${esc(p.name)}</td><td>${money(p.price)}</td><td>${p.p12Price!=null?money(p.p12Price):'-'}</td><td>${p.qtyPrice1Qty!=null?`${p.qtyPrice1Qty} = ${money(p.qtyPrice1Price)}`:'-'}</td><td>${p.qtyPrice2Qty!=null?`${p.qtyPrice2Qty} = ${money(p.qtyPrice2Price)}`:'-'}</td><td>${p.crtPrice!=null?money(p.crtPrice):'-'}</td><td>${p.crtPrice!=null?(p.crtPcs||'-'):'-'}</td><td>${p.crtFree?'1 FREE':'-'}</td><td>${p.stock}</td><td>${Number(p.commission||0).toFixed(2)}%</td><td>${Number(p.ob||0).toFixed(2)}%</td><td>${currentRole==='admin'?`<button class="icon-btn" data-edit="${p.id}">Bewerken</button> <button class="icon-btn" data-toggle-hidden="${p.id}">${p.hiddenFromSales?'Weer zichtbaar maken':'Verbergen'}</button> <span>${p.hiddenFromSales?'VERBORGEN':''}</span>`:''}</td></tr>`).join(''):'<tr><td colspan="14" class="muted">Geen producten.</td></tr>';
+  body.innerHTML=arr.length?arr.map(p=>`<tr class="admin-product-row ${p.hiddenFromSales?'is-hidden':''}">
+    <td>${p.photo?`<img class="product-thumb" src="${p.photo}" alt="">`:''}</td>
+    <td><strong>${esc(p.code)}</strong></td><td class="admin-product-name">${esc(p.name)}</td><td>${esc(p.category||'-')}</td>
+    <td>${money(p.price)}</td><td>${p.p12Price!=null?money(p.p12Price):'-'}</td>
+    <td>${p.qtyPrice1Qty!=null?`${p.qtyPrice1Qty} = ${money(p.qtyPrice1Price)}`:'-'}</td>
+    <td>${p.qtyPrice2Qty!=null?`${p.qtyPrice2Qty} = ${money(p.qtyPrice2Price)}`:'-'}</td>
+    <td>${p.crtPrice!=null?money(p.crtPrice):'-'}</td><td>${p.crtPrice!=null?(p.crtPcs||'-'):'-'}</td>
+    <td>${p.crtFree?'1 FREE':'-'}</td><td class="${Number(p.stock)<0?'admin-negative-stock':''}">${p.stock}</td>
+    <td>${Number(p.commission||0).toFixed(2)}%</td>
+    <td>${money(p.commissionBase||0)}</td><td>${money(p.tpP12CommissionBase||0)}</td>
+    <td>${money(p.tpCrtCommissionBase||0)}</td><td>${p.tpCommission?'JA':'NEE'}</td>
+    <td>${Number(p.ob||0).toFixed(2)}%</td>
+    <td><span class="admin-status ${p.hiddenFromSales?'admin-status-hidden':'admin-status-visible'}">${p.hiddenFromSales?'Verborgen':'Zichtbaar'}</span></td>
+    <td>${currentRole==='admin'?`<div class="admin-product-actions"><button class="icon-btn admin-edit-btn" data-edit="${p.id}">Bewerken</button><button class="icon-btn ${p.hiddenFromSales?'admin-show-btn':'admin-hide-btn'}" data-toggle-hidden="${p.id}">${p.hiddenFromSales?'Weer zichtbaar maken':'Verbergen'}</button></div>`:''}</td>
+  </tr>`).join(''):'<tr><td colspan="20" class="muted">Geen producten.</td></tr>';
   body.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{
     const p=products.find(x=>x.id===b.dataset.edit); if(!p)return;
     fillProductForm(p);
@@ -1221,7 +1235,7 @@ async function saveCurrentSale({printAfter=false}={}){
   return printable;
 }
 
-document.getElementById('saveSaleBtn').onclick=()=>saveCurrentSale({printAfter:false});
+
 
 function printSavedInvoice(sale){
   const invoiceHtml = `<h1>Maxi-Truck</h1>
@@ -1242,7 +1256,16 @@ function printSavedInvoice(sale){
   printHtml(`<section class="invoice-copy">${invoiceHtml}<p><strong>KLANT</strong></p></section><section class="invoice-copy">${invoiceHtml}<p><strong>MAXI-TRUCK</strong></p></section>`);
 }
 
-document.getElementById('printSaleBtn').onclick=()=>saveCurrentSale({printAfter:true});
+let salePrintBusy=false;
+document.getElementById('printSaleBtn').onclick=async()=>{
+  if(salePrintBusy)return;
+  salePrintBusy=true;
+  const btn=document.getElementById('printSaleBtn');
+  btn.disabled=true;
+  try { await saveCurrentSale({printAfter:true}); }
+  catch(err){console.error('Verkoop opslaan/printen mislukt:',err);showToast('Opslaan mislukt. Probeer opnieuw; controleer eerst verkoopgeschiedenis.');}
+  finally {salePrintBusy=false;btn.disabled=false;}
+};
 
 document.getElementById('historyDate').value=today();
 document.getElementById('historyDate').addEventListener('change',renderHistory);
