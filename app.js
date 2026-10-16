@@ -178,6 +178,7 @@ function openView(view){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   const el=document.getElementById('view-'+view);
   if(el) el.classList.add('active');
+  if(view==='products') renderNegativeStockAlert();
 }
 
 document.querySelectorAll('.tabs button').forEach(btn=>{
@@ -349,11 +350,20 @@ document.addEventListener('visibilitychange',()=>{
 });
 
 function renderAll(){
-  renderProducts(); renderProductSearch(); renderCustomers(); renderCustomersDatalist(); renderHistory(); renderClosing(); renderCart(); renderRestock(); renderRestockHistory();
+  renderProducts(); renderProductSearch(); renderCustomers(); renderCustomersDatalist(); renderHistory(); renderClosing(); renderCart(); renderRestock(); renderRestockHistory(); renderNegativeStockAlert();
 }
 
 
+function renderNegativeStockAlert(){
+  const panel=document.getElementById('negativeStockAlert');
+  if(!panel) return;
+  if(currentRole!=='admin'){panel.classList.add('hidden');return;}
+  const negative=products.filter(p=>Number(p.stock||0)<0).sort((a,b)=>Number(a.stock)-Number(b.stock));
+  panel.classList.toggle('hidden',negative.length===0);
+  panel.innerHTML=negative.length ? `<h2>⚠ Voorraad controleren — ${negative.length} product(en) in de min</h2><p>Deze producten zijn verkocht terwijl de geregistreerde voorraad onvoldoende was. Controleer en corrigeer de voorraad.</p><div class="table-wrap"><table><thead><tr><th>Code</th><th>Product</th><th>Voorraad</th></tr></thead><tbody>${negative.map(p=>`<tr><td>${esc(p.code)}</td><td>${esc(p.name)}</td><td><strong style="color:#b91c1c">${Number(p.stock)}</strong></td></tr>`).join('')}</tbody></table></div>` : '';
+}
 function renderRestock(){
+  renderNegativeStockAlert();
   const body=document.getElementById('restockBody');
   if(!body) return;
   const q=(document.getElementById('restockFilter')?.value||'').toLowerCase().trim();
@@ -959,7 +969,7 @@ function renderProductSearch(){
   });
   document.getElementById('productResults').innerHTML=arr.map(p=>`<div class="product-card">${p.photo?`<img class="product-card-photo" src="${p.photo}" alt="">`:''}<div class="muted">${esc(p.category||'CANDY')}</div><strong>${esc(p.name)}</strong><div><strong>${money(p.price)}</strong> <span class="muted">(EACH, excl. OB)</span></div>${p.p12Price!=null?`<div><strong>${money(p.p12Price)}</strong> <span class="muted">(P12, excl. OB)</span></div>`:''}${p.qtyPrice1Qty!=null?`<div><strong>${money(p.qtyPrice1Price)}</strong> <span class="muted">(${p.qtyPrice1Qty} EACH, excl. OB)</span></div>`:''}${p.qtyPrice2Qty!=null?`<div><strong>${money(p.qtyPrice2Price)}</strong> <span class="muted">(${p.qtyPrice2Qty} EACH, excl. OB)</span></div>`:''}${p.crtPrice!=null?`<div><strong>${money(p.crtPrice)}</strong> <span class="muted">(CRT ${p.crtPcs} PCS, excl. OB)</span>${p.crtFree?` <span class="free-badge">+ 1 FREE</span>`:''}</div>`:''}<div class="sale-choice">
 <input class="sale-qty-input" id="saleQty-${p.id}" type="number" min="1" step="1" value="1" inputmode="numeric" aria-label="Aantal">
-<button type="button" data-add-each="${p.id}" ${p.stock<=0?'disabled':''}>EACH</button>${p.p12Price!=null?`<button type="button" class="secondary" data-add-p12="${p.id}" ${p.stock<12?'disabled':''}>P12</button>`:''}${p.qtyPrice1Qty!=null?`<button type="button" class="secondary" data-add-deal1="${p.id}" ${p.stock<p.qtyPrice1Qty?'disabled':''}>${p.qtyPrice1Qty} EACH</button>`:''}${p.qtyPrice2Qty!=null?`<button type="button" class="secondary" data-add-deal2="${p.id}" ${p.stock<p.qtyPrice2Qty?'disabled':''}>${p.qtyPrice2Qty} EACH</button>`:''}${p.crtPrice!=null?`<button type="button" class="secondary" data-add-crt="${p.id}">CRT</button>`:''}</div></div>`).join('')||'<div class="muted">Geen product gevonden.</div>';
+<button type="button" data-add-each="${p.id}" >EACH</button>${p.p12Price!=null?`<button type="button" class="secondary" data-add-p12="${p.id}" >P12</button>`:''}${p.qtyPrice1Qty!=null?`<button type="button" class="secondary" data-add-deal1="${p.id}" >${p.qtyPrice1Qty} EACH</button>`:''}${p.qtyPrice2Qty!=null?`<button type="button" class="secondary" data-add-deal2="${p.id}" >${p.qtyPrice2Qty} EACH</button>`:''}${p.crtPrice!=null?`<button type="button" class="secondary" data-add-crt="${p.id}">CRT</button>`:''}</div></div>`).join('')||'<div class="muted">Geen product gevonden.</div>';
   
   function qtyForProduct(id){
     const el=document.getElementById('saleQty-'+id);
@@ -1022,10 +1032,6 @@ function addToCart(id,unit='EACH',requestedQty=1){
   const newQty=(existing?Number(existing.qty||0):0)+addQty;
   const pcsNeeded=newQty*stockUnitsPerSale;
 
-  if(pcsNeeded>Number(p.stock||0)){
-    showToast(`Niet genoeg voorraad voor ${addQty} ${unit}. Nodig: ${pcsNeeded} EACH, voorraad: ${Number(p.stock||0)} EACH.`);
-    return;
-  }
 
   if(existing){
     existing.qty=newQty;
@@ -1113,10 +1119,6 @@ function renderCart(){
     const unitsPerSale=Number(l.stockUnitsPerSale||l.unitsPerSale||1);
     const pcsNeeded=nextQty*unitsPerSale;
 
-    if(p && pcsNeeded>Number(p.stock||0)){
-      showToast('Niet genoeg voorraad om het aantal te verhogen.');
-      return;
-    }
 
     l.qty=nextQty;
     renderCart();
@@ -1152,7 +1154,7 @@ async function saveCurrentSale({printAfter=false}={}){
   for(const l of cart){
     const p=products.find(x=>x.id===l.productId);
     const pcsNeeded=Number(l.qty||0)*Number(l.stockUnitsPerSale||l.unitsPerSale||1);
-    if(!p||p.stock<pcsNeeded){showToast('Niet genoeg voorraad voor '+l.name);return null;}
+    if(!p){showToast('Product niet gevonden: '+l.name);return null;}
   }
 
   if(customer!=='Contant' && !customers.some(c=>c.name.toLowerCase()===customer.toLowerCase())){
@@ -1215,7 +1217,7 @@ async function saveCurrentSale({printAfter=false}={}){
 document.getElementById('saveSaleBtn').onclick=()=>saveCurrentSale({printAfter:false});
 
 function printSavedInvoice(sale){
-  printHtml(`<h1>Maxi-Truck</h1>
+  const invoiceHtml = `<h1>Maxi-Truck</h1>
   <div class="invoice-meta">
     <div><strong>Factuurnummer:</strong> ${esc(sale.invoiceNumber||sale.invoiceId)}</div>
     <div><strong>Klant:</strong> ${esc(sale.customer)}</div>
@@ -1228,7 +1230,9 @@ function printSavedInvoice(sale){
   <hr>
   <p style="text-align:right"><strong>Subtotaal excl. OB:</strong> ${money(sale.subtotal)}</p>
   <p style="text-align:right"><strong>OB:</strong> ${money(sale.obTotal)}</p>
-  <h2 style="text-align:right">Totaal incl. OB: ${money(sale.total)}</h2>`);
+  <h2 style="text-align:right">Totaal incl. OB: ${money(sale.total)}</h2>`;
+  // Two physical copies from one saved sale; no duplicate sale or stock deduction.
+  printHtml(`<section class="invoice-copy">${invoiceHtml}<p><strong>KLANT</strong></p></section><section class="invoice-copy">${invoiceHtml}<p><strong>MAXI-TRUCK</strong></p></section>`);
 }
 
 document.getElementById('printSaleBtn').onclick=()=>saveCurrentSale({printAfter:true});
@@ -1301,7 +1305,7 @@ document.getElementById('printClosingBtn').onclick=()=>{
 function printHtml(html){
   const w=window.open('','_blank','width=850,height=700');
   if(!w){showToast('Sta pop-ups toe om te printen.');return;}
-  w.document.write(`<!doctype html><html><head><title>Maxi-Truck</title><style>body{font-family:Arial;padding:24px}table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px solid #ddd;text-align:left}</style></head><body>${html}</body></html>`);
+  w.document.write(`<!doctype html><html><head><title>Maxi-Truck</title><style>body{font-family:Arial;padding:24px}table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px solid #ddd;text-align:left}.invoice-copy+.invoice-copy{break-before:page;page-break-before:always}@media print{.invoice-copy{break-inside:avoid}}</style></head><body>${html}</body></html>`);
   w.document.close(); w.focus(); setTimeout(()=>w.print(),300);
 }
 
@@ -1331,3 +1335,20 @@ if('serviceWorker' in navigator){
     }catch(e){}
   });
 }
+
+// Vergroot productfoto met één tik, sluit met kruis, buiten de foto of Escape.
+(() => {
+  const overlay = document.getElementById('photoZoom');
+  const large = document.getElementById('photoZoomImage');
+  const close = () => { overlay.classList.add('hidden'); large.removeAttribute('src'); };
+  document.addEventListener('click', (event) => {
+    const img = event.target.closest('img.product-card-photo, img.product-thumb, img#photoPreview');
+    if (!img || !img.getAttribute('src')) return;
+    large.src = img.src;
+    large.alt = img.alt || 'Vergrote productfoto';
+    overlay.classList.remove('hidden');
+  });
+  document.getElementById('photoZoomClose').addEventListener('click', close);
+  overlay.addEventListener('click', event => { if (event.target === overlay) close(); });
+  document.addEventListener('keydown', event => { if (event.key === 'Escape' && !overlay.classList.contains('hidden')) close(); });
+})();

@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#111827">
   <title>Maxi-Truck</title>
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css?v=41">
+  <link rel="stylesheet" href="style.css?v=43">
 
   <style>
     #backToTopBtn{
@@ -119,6 +119,7 @@
   </section>
 
   <section id="view-products" class="view">
+    <div id="negativeStockAlert" class="card hidden" role="alert" style="border:2px solid #dc2626"></div>
     <div class="card">
       <h2>Product toevoegen / wijzigen</h2>
       <input id="productId" type="hidden">
@@ -173,7 +174,7 @@
           1 CRT = + 1 FREE
         </label>
         <label>Voorraad
-          <input id="pStock" type="number" min="0" step="1" placeholder="0">
+          <input id="pStock" type="number" step="1" placeholder="0">
         </label>
         <label>Commissie %
           <input id="pCommission" type="number" min="0" step="0.01" placeholder="0">
@@ -325,12 +326,16 @@
   </div>
 </div>
 
+<div id="photoZoom" class="photo-zoom hidden" role="dialog" aria-modal="true" aria-label="Productfoto vergroten">
+  <button id="photoZoomClose" type="button" aria-label="Foto sluiten">×</button>
+  <img id="photoZoomImage" alt="Vergrote productfoto">
+</div>
 <div id="toast" class="toast hidden"></div>
 <button id="backToTopBtn" type="button" aria-label="Naar boven" title="Naar boven">↑</button>
 
 
-<script type="module" src="firebase-app.js?v=41"></script>
+<script type="module" src="firebase-app.js?v=43"></script>
 
-<script type="module" src="app.js?v=41"></script>
+<script type="module" src="app.js?v=43"></script>
 </body>
 </html>

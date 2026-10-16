@@ -86,3 +86,10 @@
   text-align:center;
   box-sizing:border-box;
 }
+
+/* Vergroot productfoto op tablet en beheerder */
+.product-card-photo,.product-thumb,#photoPreview{cursor:zoom-in}
+.photo-zoom{position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.9);display:flex;align-items:center;justify-content:center;padding:60px 16px 20px;box-sizing:border-box}
+.photo-zoom.hidden{display:none!important}
+.photo-zoom img{max-width:100%;max-height:100%;object-fit:contain;border-radius:8px}
+#photoZoomClose{position:absolute;top:12px;right:16px;width:48px;height:48px;border:0;border-radius:50%;background:#fff;color:#111;font-size:34px;line-height:1;cursor:pointer;z-index:1}

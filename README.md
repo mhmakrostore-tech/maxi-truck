@@ -272,3 +272,7 @@ Voor synchronisatie tussen tablet en pc moet Firebase later gekoppeld worden.
 - De beheerder blijft de productcode zien bij **Producten**.
 - Op de geprinte invoice blijft de productcode zichtbaar.
 - Op de geprinte voorraadlijst blijft de productcode zichtbaar.
+
+
+## Update dubbele factuurprint
+Bij Factuur printen wordt de verkoop eenmaal opgeslagen en wordt de factuur in twee afdrukexemplaren opgebouwd (KLANT en MAXI-TRUCK). Het afdrukvenster kan nog bevestiging vragen. De daadwerkelijke printerintegratie/offline werking vereist controle met het toekomstige printermodel en de tablet. De beheerderaccounts sales@maxi.com en mh.makrostore@gmail.com zijn ongewijzigd. Controleer Firebase Security Rules afzonderlijk; deze ZIP verandert ze niet.
