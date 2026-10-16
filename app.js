@@ -922,19 +922,18 @@ function renderProducts(){
   const body=document.getElementById('productsBody');
   body.innerHTML=arr.length?arr.map(p=>`<tr class="admin-product-row ${p.hiddenFromSales?'is-hidden':''}">
     <td>${p.photo?`<img class="product-thumb" src="${p.photo}" alt="">`:''}</td>
-    <td><strong>${esc(p.code)}</strong></td><td class="admin-product-name">${esc(p.name)}</td><td>${esc(p.category||'-')}</td>
-    <td>${money(p.price)}</td><td>${p.p12Price!=null?money(p.p12Price):'-'}</td>
-    <td>${p.qtyPrice1Qty!=null?`${p.qtyPrice1Qty} = ${money(p.qtyPrice1Price)}`:'-'}</td>
-    <td>${p.qtyPrice2Qty!=null?`${p.qtyPrice2Qty} = ${money(p.qtyPrice2Price)}`:'-'}</td>
-    <td>${p.crtPrice!=null?money(p.crtPrice):'-'}</td><td>${p.crtPrice!=null?(p.crtPcs||'-'):'-'}</td>
-    <td>${p.crtFree?'1 FREE':'-'}</td><td class="${Number(p.stock)<0?'admin-negative-stock':''}">${p.stock}</td>
+    <td><strong>${esc(p.code)}</strong></td>
+    <td class="admin-product-name" title="${esc(p.name)}">${esc(p.name)}</td>
+    <td>${esc(p.category||'-')}</td>
+    <td>${money(p.price)}</td>
+    <td>${p.p12Price!=null?money(p.p12Price):'-'}</td>
+    <td>${p.crtPrice!=null?money(p.crtPrice):'-'}</td>
+    <td class="${Number(p.stock)<0?'admin-negative-stock':''}">${p.stock}</td>
     <td>${Number(p.commission||0).toFixed(2)}%</td>
-    <td>${money(p.commissionBase||0)}</td><td>${money(p.tpP12CommissionBase||0)}</td>
-    <td>${money(p.tpCrtCommissionBase||0)}</td><td>${p.tpCommission?'JA':'NEE'}</td>
-    <td>${Number(p.ob||0).toFixed(2)}%</td>
-    <td><span class="admin-status ${p.hiddenFromSales?'admin-status-hidden':'admin-status-visible'}">${p.hiddenFromSales?'Verborgen':'Zichtbaar'}</span></td>
-    <td>${currentRole==='admin'?`<div class="admin-product-actions"><button class="icon-btn admin-edit-btn" data-edit="${p.id}">Bewerken</button><button class="icon-btn ${p.hiddenFromSales?'admin-show-btn':'admin-hide-btn'}" data-toggle-hidden="${p.id}">${p.hiddenFromSales?'Weer zichtbaar maken':'Verbergen'}</button></div>`:''}</td>
-  </tr>`).join(''):'<tr><td colspan="20" class="muted">Geen producten.</td></tr>';
+    <td>${Number(p.ob||0).toLocaleString("nl-NL",{maximumFractionDigits:2})}%</td>
+    <td>${currentRole==='admin'?`<button class="icon-btn admin-visibility-btn ${p.hiddenFromSales?'admin-show-btn':'admin-hide-btn'}" data-toggle-hidden="${p.id}" title="Klik om zichtbaarheid te veranderen">${p.hiddenFromSales?'Nee':'Ja'}</button>`:(p.hiddenFromSales?'Nee':'Ja')}</td>
+    <td>${currentRole==='admin'?`<button class="icon-btn admin-edit-btn" data-edit="${p.id}">Bewerken</button>`:''}</td>
+  </tr>`).join(''):'<tr><td colspan="12" class="muted">Geen producten.</td></tr>';
   body.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{
     const p=products.find(x=>x.id===b.dataset.edit); if(!p)return;
     fillProductForm(p);
@@ -956,6 +955,34 @@ function renderProducts(){
 
 document.getElementById('productSearch').addEventListener('input',renderProductSearch);
 document.getElementById('saleCategoryFilter')?.addEventListener('change',renderProductSearch);
+
+// Categorieknoppen voor directe selectie op de verkooptablet.
+(function initSaleCategoryButtons(){
+  const select=document.getElementById('saleCategoryFilter');
+  const group=document.getElementById('saleCategoryButtons');
+  if(!select || !group) return;
+  const sync=()=>group.querySelectorAll('button').forEach(btn=>{
+    const active=btn.dataset.category===select.value;
+    btn.classList.toggle('active',active);
+    btn.setAttribute('aria-pressed',String(active));
+  });
+  Array.from(select.options).forEach(option=>{
+    const btn=document.createElement('button');
+    btn.type='button';
+    btn.className='sale-category-button';
+    btn.dataset.category=option.value;
+    btn.textContent=option.value ? option.textContent : 'ALLE';
+    btn.addEventListener('click',()=>{
+      select.value=option.value;
+      select.dispatchEvent(new Event('change',{bubbles:true}));
+      sync();
+    });
+    group.appendChild(btn);
+  });
+  select.addEventListener('change',sync);
+  sync();
+})();
+
 function renderProductSearch(){
   const q=document.getElementById('productSearch').value.toLowerCase().trim();
   const words=q.split(/\s+/).filter(Boolean);
@@ -988,21 +1015,22 @@ function renderProductSearch(){
 
     return score(an,ac)-score(bn,bc) || an.localeCompare(bn);
   });
-  document.getElementById('productResults').innerHTML=arr.map(p=>`<div class="product-card">${p.photo?`<img class="product-card-photo" src="${p.photo}" alt="">`:''}<div class="muted">${esc(p.category||'CANDY')}</div><strong>${esc(p.name)}</strong><div><strong>${money(p.price)}</strong> <span class="muted">(EACH, excl. OB)</span></div>${p.p12Price!=null?`<div><strong>${money(p.p12Price)}</strong> <span class="muted">(P12, excl. OB)</span></div>`:''}${p.qtyPrice1Qty!=null?`<div><strong>${money(p.qtyPrice1Price)}</strong> <span class="muted">(${p.qtyPrice1Qty} EACH, excl. OB)</span></div>`:''}${p.qtyPrice2Qty!=null?`<div><strong>${money(p.qtyPrice2Price)}</strong> <span class="muted">(${p.qtyPrice2Qty} EACH, excl. OB)</span></div>`:''}${p.crtPrice!=null?`<div><strong>${money(p.crtPrice)}</strong> <span class="muted">(CRT ${p.crtPcs} PCS, excl. OB)</span>${p.crtFree?` <span class="free-badge">+ 1 FREE</span>`:''}</div>`:''}<div class="sale-choice">
-<input class="sale-qty-input" id="saleQty-${p.id}" type="number" min="1" step="1" value="1" inputmode="numeric" aria-label="Aantal">
-<button type="button" data-add-each="${p.id}" >EACH</button>${p.p12Price!=null?`<button type="button" class="secondary" data-add-p12="${p.id}" >P12</button>`:''}${p.qtyPrice1Qty!=null?`<button type="button" class="secondary" data-add-deal1="${p.id}" >${p.qtyPrice1Qty} EACH</button>`:''}${p.qtyPrice2Qty!=null?`<button type="button" class="secondary" data-add-deal2="${p.id}" >${p.qtyPrice2Qty} EACH</button>`:''}${p.crtPrice!=null?`<button type="button" class="secondary" data-add-crt="${p.id}">CRT</button>`:''}</div></div>`).join('')||'<div class="muted">Geen product gevonden.</div>';
-  
-  function qtyForProduct(id){
-    const el=document.getElementById('saleQty-'+id);
-    const n=Math.floor(Number(el?.value||1));
-    return Number.isFinite(n) && n>0 ? n : 1;
-  }
-
-document.querySelectorAll('[data-add-each]').forEach(b=>b.onclick=()=>addToCart(b.dataset.addEach,'EACH',qtyForProduct(b.dataset.addEach)));
-  document.querySelectorAll('[data-add-p12]').forEach(b=>b.onclick=()=>addToCart(b.dataset.addP12,'P12',qtyForProduct(b.dataset.addP12)));
-  document.querySelectorAll('[data-add-deal1]').forEach(b=>b.onclick=()=>addToCart(b.dataset.addDeal1,'DEAL1',qtyForProduct(b.dataset.addDeal1)));
-  document.querySelectorAll('[data-add-deal2]').forEach(b=>b.onclick=()=>addToCart(b.dataset.addDeal2,'DEAL2',qtyForProduct(b.dataset.addDeal2)));
-  document.querySelectorAll('[data-add-crt]').forEach(b=>b.onclick=()=>addToCart(b.dataset.addCrt,'CRT',qtyForProduct(b.dataset.addCrt)));
+  const saleRow=(p,unit,label,price)=>`<div class="sale-unit-row"><div class="sale-unit-info"><b>${label}</b><span>${money(price)}</span></div><div class="sale-qty-control"><button type="button" class="sale-step" data-step="-1" aria-label="${label} verminderen">−</button><input class="sale-unit-qty" type="number" min="1" step="1" placeholder="Aantal" inputmode="numeric" aria-label="Aantal ${label}" data-qty-unit="${unit}" data-qty-product="${p.id}"><button type="button" class="sale-step" data-step="1" aria-label="${label} verhogen">+</button></div><button type="button" class="sale-add" data-sale-unit="${unit}" data-sale-product="${p.id}" aria-label="Voeg ${label} toe">Toevoegen</button></div>`;
+  document.getElementById('productResults').innerHTML=arr.map(p=>`<article class="product-card sale-grid-card">${p.photo?`<img class="product-card-photo" src="${p.photo}" alt="${esc(p.name)}">`:''}<div class="sale-card-category">${esc(p.category||'CANDY')}</div><strong class="sale-card-name">${esc(p.name)}</strong><span class="sale-card-code">${esc(p.code||'')}</span><div class="sale-unit-list">${saleRow(p,'EACH','EACH',p.price)}${p.p12Price!=null?saleRow(p,'P12','P12',p.p12Price):''}${p.crtPrice!=null?saleRow(p,'CRT','CRT'+(p.crtFree?' +1 FREE':''),p.crtPrice):''}${p.qtyPrice1Qty!=null?saleRow(p,'DEAL1',p.qtyPrice1Qty+' EACH',p.qtyPrice1Price):''}${p.qtyPrice2Qty!=null?saleRow(p,'DEAL2',p.qtyPrice2Qty+' EACH',p.qtyPrice2Price):''}</div></article>`).join('')||'<div class="muted">Geen product gevonden.</div>';
+  document.querySelectorAll('#productResults .sale-step').forEach(button=>button.addEventListener('click',()=>{
+    const input=button.parentElement.querySelector('.sale-unit-qty');
+    const current=Math.max(0,Math.floor(Number(input.value)||0));
+    const next=Math.max(0,current+Number(button.dataset.step));
+    input.value=next?String(next):'';
+  }));
+  document.querySelectorAll('[data-sale-unit]').forEach(button=>button.addEventListener('click',()=>{
+    const id=button.dataset.saleProduct, unit=button.dataset.saleUnit;
+    const input=button.parentElement.querySelector('[data-qty-unit]');
+    const qty=Number(input?.value);
+    if(!Number.isInteger(qty)||qty<1){showToast('Vul een geldig aantal in.');input?.focus();return;}
+    addToCart(id,unit,qty);
+    if(input)input.value='';
+  }));
 }
 
 function addToCart(id,unit='EACH',requestedQty=1){
@@ -1080,8 +1108,7 @@ function addToCart(id,unit='EACH',requestedQty=1){
 
   renderCart();
 
-  const qtyInput=document.getElementById('saleQty-'+id);
-  if(qtyInput) qtyInput.value='1';
+
 
   if(unit==='CRT'){
     showToast(`${addQty} CRT toegevoegd aan de factuur.`);
@@ -1155,6 +1182,8 @@ function renderCart(){
   document.getElementById('cartSubtotal').textContent=money(subtotal);
   document.getElementById('cartObTotal').textContent=money(obTotal);
   document.getElementById('cartTotal').textContent=money(subtotal+obTotal);
+  const countBadge=document.getElementById('cartCount');
+  if(countBadge)countBadge.textContent=String(cart.reduce((n,l)=>n+(Number(l.qty)||0),0));
 }
 document.getElementById('clearCartBtn').onclick=()=>{cart=[];renderCart();};
 
@@ -1381,4 +1410,19 @@ if('serviceWorker' in navigator){
   document.getElementById('photoZoomClose').addEventListener('click', close);
   overlay.addEventListener('click', event => { if (event.target === overlay) close(); });
   document.addEventListener('keydown', event => { if (event.key === 'Escape' && !overlay.classList.contains('hidden')) close(); });
+})();
+
+// Winkelmandje in compacte tabletweergave
+(function(){
+  const toggle=document.getElementById('tabletCartToggle');
+  const close=document.getElementById('tabletCartClose');
+  const card=document.getElementById('invoiceCard');
+  if(!toggle||!card)return;
+  function setOpen(open){
+    card.classList.toggle('tablet-cart-open',open);
+    toggle.setAttribute('aria-expanded',String(open));
+    if(open)card.scrollIntoView({behavior:'smooth',block:'start'});
+  }
+  toggle.addEventListener('click',()=>setOpen(!card.classList.contains('tablet-cart-open')));
+  close?.addEventListener('click',()=>setOpen(false));
 })();
