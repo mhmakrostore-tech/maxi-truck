@@ -1,0 +1,16 @@
+MAXI-TRUCK UPDATE v42
+
+Nieuw bij VOORRAAD AANVULLEN:
+- Na 'Alles opslaan' blijft zichtbaar wat je hebt bijgevoegd.
+- Onder de invoerlijst staat nu 'Laatst bijgevoegd'.
+- Per product zie je code, naam, hoeveel bijgevoegd, oude voorraad en nieuwe voorraad.
+- Datum en tijd worden opgeslagen.
+- Nieuwste aanvulling staat bovenaan.
+- De historie wordt in Firebase opgeslagen en blijft zichtbaar na opnieuw openen.
+- Alle functies uit v41 blijven behouden.
+
+Vervang in GitHub:
+- app.js
+- index.html
+
+Daarna Commit changes, ongeveer 1 minuut wachten en Ctrl + F5.
