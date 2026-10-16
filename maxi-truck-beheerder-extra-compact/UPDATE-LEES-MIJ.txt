@@ -1,0 +1,3 @@
+Maxi-Truck update v44 - compact beheerderoverzicht.
+Status is nu klikbaar: Ja = zichtbaar, Nee = verborgen. Geen dubbele Verbergen-knop. OB toont 6% in plaats van 6.00%. Kleinere foto en minder ruimte.
+Upload alle bestanden naar GitHub en commit. Test op de pc.
