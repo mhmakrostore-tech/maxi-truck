@@ -250,3 +250,16 @@
 /* Huidige voorraad rechtstreeks wijzigen in Voorraad aanvullen */
 #view-restock .restock-current-input {width:95px;max-width:100%;box-sizing:border-box;padding:8px;border:1px solid #cbd5e1;border-radius:8px;font:inherit;}
 #view-restock .restock-current-input.admin-negative-stock{color:#dc2626;font-weight:800;}
+
+/* Alleen kolom Voorraad na Zichtbaar verplaatst: bestaande breedtes behouden */
+@media (min-width:760px){
+ #view-products th:nth-child(5){width:8%!important}
+ #view-products th:nth-child(6){width:20%!important}
+ #view-products th:nth-child(7){width:9%!important}
+ #view-products th:nth-child(8){width:7%!important}
+ #view-products th:nth-child(9){width:7%!important}
+ #view-products th:nth-child(10){width:7%!important}
+}
+/* Hele productregel geel bij aanklikken, ook op afwisselend gekleurde regels */
+#view-products tr.admin-product-row.is-selected,
+#view-products tr.admin-product-row.is-selected > td {background:#fff176!important}

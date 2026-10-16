@@ -958,18 +958,25 @@ function renderProducts(){
     <td><strong>${esc(p.code)}</strong></td>
     <td>${currentRole==='admin'?`<button class="icon-btn admin-edit-btn" data-edit="${p.id}">Bewerken</button>`:''}</td>
     <td>${currentRole==='admin'?`<button class="icon-btn admin-visibility-btn ${p.hiddenFromSales?'admin-show-btn':'admin-hide-btn'}" data-toggle-hidden="${p.id}" title="Klik om zichtbaarheid te veranderen">${p.hiddenFromSales?'Nee':'Ja'}</button>`:(p.hiddenFromSales?'Nee':'Ja')}</td>
+    <td class="${Number(p.stock)<0?'admin-negative-stock':''}">${currentRole==='admin'?`<input type="number" step="1" class="admin-stock-input ${Number(p.stock)<0?'admin-negative-stock':''}" data-stock-id="${p.id}" value="${Number(p.stock)||0}" aria-label="Voorraad van ${esc(p.name)} aanpassen" title="Wijzig voorraad en druk Enter of klik buiten het vak">`:p.stock}</td>
     <td class="admin-product-name" title="${esc(p.name)}">${esc(p.name)}</td>
     <td>${esc(p.category||'-')}</td>
     <td>${money(p.price)}</td>
     <td>${p.p12Price!=null?money(p.p12Price):'-'}</td>
     <td>${p.crtPrice!=null?money(p.crtPrice):'-'}</td>
-    <td class="${Number(p.stock)<0?'admin-negative-stock':''}">${currentRole==='admin'?`<input type="number" step="1" class="admin-stock-input ${Number(p.stock)<0?'admin-negative-stock':''}" data-stock-id="${p.id}" value="${Number(p.stock)||0}" aria-label="Voorraad van ${esc(p.name)} aanpassen" title="Wijzig voorraad en druk Enter of klik buiten het vak">`:p.stock}</td>
+
     <td>${Number(p.commission||0).toFixed(2)}%</td>
     <td>${Number(p.ob||0).toLocaleString("nl-NL",{maximumFractionDigits:2})}%</td>
 
     
 
   </tr>`).join(''):'<tr><td colspan="12" class="muted">Geen producten.</td></tr>';
+  body.addEventListener('click', e=>{
+    const row=e.target.closest('tr.admin-product-row');
+    if(!row || !body.contains(row))return;
+    body.querySelectorAll('tr.admin-product-row.is-selected').forEach(r=>r.classList.remove('is-selected'));
+    row.classList.add('is-selected');
+  });
   body.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{
     const p=products.find(x=>x.id===b.dataset.edit); if(!p)return;
     fillProductForm(p);
