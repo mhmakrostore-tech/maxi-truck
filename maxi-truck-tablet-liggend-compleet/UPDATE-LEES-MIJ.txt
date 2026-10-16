@@ -1,0 +1,10 @@
+Maxi-Truck kleine Android-tablet liggend
+
+- Twee productkaarten naast elkaar op een kleine liggende tablet.
+- EACH, P12 en CRT blijven direct zichtbaar.
+- Aantalveld begint leeg; typen of +/- gebruiken.
+- Toevoegen blijft een aparte knop per eenheid.
+- Winkelmandje opent via Bestelling bovenaan; sluit met kruis.
+- Foto vergroten, verbergen, negatieve voorraad, dubbel printen en bestaande beheerderindeling behouden uit vorige ZIP.
+
+LET OP: upload bestanden uit deze ZIP direct naar de hoofdmap van GitHub, niet de bovenliggende map. Test eerst met een proefverkoop en controleer Firebase-rechten en printen. Offline en rechtstreeks Bluetooth-printen zijn nog niet voltooid.
