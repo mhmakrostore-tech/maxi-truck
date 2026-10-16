@@ -1018,22 +1018,49 @@ function renderProductSearch(){
 
     return score(an,ac)-score(bn,bc) || an.localeCompare(bn);
   });
-  const saleRow=(p,unit,label,price)=>`<div class="sale-unit-row"><div class="sale-unit-info"><b>${label}</b><span>${money(price)}</span></div><div class="sale-qty-control"><button type="button" class="sale-step" data-step="-1" aria-label="${label} verminderen">−</button><input class="sale-unit-qty" type="number" min="1" step="1" placeholder="Aantal" inputmode="numeric" aria-label="Aantal ${label}" data-qty-unit="${unit}" data-qty-product="${p.id}"><button type="button" class="sale-step" data-step="1" aria-label="${label} verhogen">+</button></div><button type="button" class="sale-add" data-sale-unit="${unit}" data-sale-product="${p.id}" aria-label="Voeg ${label} toe">Toevoegen</button></div>`;
+  const saleRow=(p,unit,label,price)=>{
+    const saved=cart.find(l=>l.key===p.id+'_'+unit);
+    const qty=saved?String(saved.qty):'';
+    return `<div class="sale-unit-row"><div class="sale-unit-info"><b>${label}</b><span>${money(price)}</span></div><div class="sale-qty-control"><button type="button" class="sale-step" data-step="-1" aria-label="${label} verminderen">−</button><input class="sale-unit-qty" type="number" min="1" step="1" placeholder="Aantal" inputmode="numeric" aria-label="Aantal ${label}" data-qty-unit="${unit}" data-qty-product="${p.id}" value="${qty}"><button type="button" class="sale-step" data-step="1" aria-label="${label} verhogen">+</button></div></div>`;
+  };
   document.getElementById('productResults').innerHTML=arr.map(p=>`<article class="product-card sale-grid-card">${p.photo?`<img class="product-card-photo" src="${p.photo}" alt="${esc(p.name)}">`:''}<div class="sale-card-category">${esc(p.category||'CANDY')}</div><strong class="sale-card-name">${esc(p.name)}</strong><span class="sale-card-code">${esc(p.code||'')}</span><div class="sale-unit-list">${saleRow(p,'EACH','EACH',p.price)}${p.p12Price!=null?saleRow(p,'P12','P12',p.p12Price):''}${p.crtPrice!=null?saleRow(p,'CRT','CRT'+(p.crtFree?' +1 FREE':''),p.crtPrice):''}${p.qtyPrice1Qty!=null?saleRow(p,'DEAL1',p.qtyPrice1Qty+' EACH',p.qtyPrice1Price):''}${p.qtyPrice2Qty!=null?saleRow(p,'DEAL2',p.qtyPrice2Qty+' EACH',p.qtyPrice2Price):''}</div></article>`).join('')||'<div class="muted">Geen product gevonden.</div>';
+  document.querySelectorAll('#productResults .sale-unit-qty').forEach(input=>{
+    input.addEventListener('input',()=>{
+      const raw=input.value.trim();
+      if(raw==='' || raw==='0'){
+        setCartQuantity(input.dataset.qtyProduct,input.dataset.qtyUnit,0);
+      }else{
+        const qty=Number(raw);
+        if(Number.isSafeInteger(qty)&&qty>0) setCartQuantity(input.dataset.qtyProduct,input.dataset.qtyUnit,qty);
+      }
+    });
+    input.addEventListener('change',()=>{
+      const qty=Number(input.value);
+      if(!Number.isSafeInteger(qty)||qty<0){
+        const saved=cart.find(l=>l.key===input.dataset.qtyProduct+'_'+input.dataset.qtyUnit);
+        input.value=saved?String(saved.qty):'';
+      }
+    });
+  });
   document.querySelectorAll('#productResults .sale-step').forEach(button=>button.addEventListener('click',()=>{
     const input=button.parentElement.querySelector('.sale-unit-qty');
     const current=Math.max(0,Math.floor(Number(input.value)||0));
     const next=Math.max(0,current+Number(button.dataset.step));
     input.value=next?String(next):'';
+    setCartQuantity(input.dataset.qtyProduct,input.dataset.qtyUnit,next);
   }));
-  document.querySelectorAll('[data-sale-unit]').forEach(button=>button.addEventListener('click',()=>{
-    const id=button.dataset.saleProduct, unit=button.dataset.saleUnit;
-    const input=button.parentElement.querySelector('[data-qty-unit]');
-    const qty=Number(input?.value);
-    if(!Number.isInteger(qty)||qty<1){showToast('Vul een geldig aantal in.');input?.focus();return;}
-    addToCart(id,unit,qty);
-    if(input)input.value='';
-  }));
+}
+
+function setCartQuantity(id,unit,qty){
+  const key=id+'_'+unit;
+  const existing=cart.find(l=>l.key===key);
+  if(qty===0){
+    if(existing){cart.splice(cart.indexOf(existing),1);renderCart();}
+    return;
+  }
+  if(!Number.isSafeInteger(qty)||qty<1)return;
+  if(existing){existing.qty=qty;renderCart();}
+  else addToCart(id,unit,qty);
 }
 
 function addToCart(id,unit='EACH',requestedQty=1){
@@ -1117,13 +1144,6 @@ function addToCart(id,unit='EACH',requestedQty=1){
     showToast(`${addQty} CRT toegevoegd aan de factuur.`);
   }
 
-  // Zoekveld pas NA succesvol toevoegen leegmaken.
-  const saleSearch=document.getElementById('productSearch');
-  if(saleSearch){
-    saleSearch.value='';
-    renderProductSearch();
-    saleSearch.focus();
-  }
 }
 function renderCart(){
   const body=document.getElementById('cartBody');
@@ -1185,6 +1205,11 @@ function renderCart(){
   document.getElementById('cartSubtotal').textContent=money(subtotal);
   document.getElementById('cartObTotal').textContent=money(obTotal);
   document.getElementById('cartTotal').textContent=money(subtotal+obTotal);
+  document.querySelectorAll('#productResults .sale-unit-qty').forEach(input=>{
+    if(document.activeElement===input)return;
+    const line=cart.find(l=>l.key===input.dataset.qtyProduct+'_'+input.dataset.qtyUnit);
+    input.value=line?String(line.qty):'';
+  });
   const countBadge=document.getElementById('cartCount');
   if(countBadge)countBadge.textContent=String(cart.reduce((n,l)=>n+(Number(l.qty)||0),0));
 }
