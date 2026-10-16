@@ -1,0 +1,3 @@
+Maxi-Truck categorieknoppen update
+Op SALES staan ALLE, CANDY, TOPPERS en FOOD direct als knoppen. Geen dropdown meer. De overige functies blijven behouden.
+Pak ZIP uit en upload alle bestanden in de hoofdmap van GitHub maxi-truck.
