@@ -920,17 +920,23 @@ function renderProducts(){
   let arr=products.slice().sort((a,b)=>a.name.localeCompare(b.name));
   if(q) arr=arr.filter(p=>p.name.toLowerCase().includes(q)||String(p.code).toLowerCase().includes(q));
   const body=document.getElementById('productsBody');
-  body.innerHTML=arr.length?arr.map(p=>`<tr><td>${p.photo?`<img class="product-thumb" src="${p.photo}" alt="">`:''}</td><td><strong>${esc(p.code)}</strong></td><td>${esc(p.name)}</td><td>${money(p.price)}</td><td>${p.p12Price!=null?money(p.p12Price):'-'}</td><td>${p.qtyPrice1Qty!=null?`${p.qtyPrice1Qty} = ${money(p.qtyPrice1Price)}`:'-'}</td><td>${p.qtyPrice2Qty!=null?`${p.qtyPrice2Qty} = ${money(p.qtyPrice2Price)}`:'-'}</td><td>${p.crtPrice!=null?money(p.crtPrice):'-'}</td><td>${p.crtPrice!=null?(p.crtPcs||'-'):'-'}</td><td>${p.crtFree?'1 FREE':'-'}</td><td>${p.stock}</td><td>${Number(p.commission||0).toFixed(2)}%</td><td>${Number(p.ob||0).toFixed(2)}%</td><td>${currentRole==='admin'?`<button class="icon-btn" data-edit="${p.id}">Bewerken</button> <button class="danger icon-btn" data-delete="${p.id}">Verwijderen</button>`:''}</td></tr>`).join(''):'<tr><td colspan="14" class="muted">Geen producten.</td></tr>';
+  body.innerHTML=arr.length?arr.map(p=>`<tr><td>${p.photo?`<img class="product-thumb" src="${p.photo}" alt="">`:''}</td><td><strong>${esc(p.code)}</strong></td><td>${esc(p.name)}</td><td>${money(p.price)}</td><td>${p.p12Price!=null?money(p.p12Price):'-'}</td><td>${p.qtyPrice1Qty!=null?`${p.qtyPrice1Qty} = ${money(p.qtyPrice1Price)}`:'-'}</td><td>${p.qtyPrice2Qty!=null?`${p.qtyPrice2Qty} = ${money(p.qtyPrice2Price)}`:'-'}</td><td>${p.crtPrice!=null?money(p.crtPrice):'-'}</td><td>${p.crtPrice!=null?(p.crtPcs||'-'):'-'}</td><td>${p.crtFree?'1 FREE':'-'}</td><td>${p.stock}</td><td>${Number(p.commission||0).toFixed(2)}%</td><td>${Number(p.ob||0).toFixed(2)}%</td><td>${currentRole==='admin'?`<button class="icon-btn" data-edit="${p.id}">Bewerken</button> <button class="icon-btn" data-toggle-hidden="${p.id}">${p.hiddenFromSales?'Weer zichtbaar maken':'Verbergen'}</button> <span>${p.hiddenFromSales?'VERBORGEN':''}</span>`:''}</td></tr>`).join(''):'<tr><td colspan="14" class="muted">Geen producten.</td></tr>';
   body.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{
     const p=products.find(x=>x.id===b.dataset.edit); if(!p)return;
     fillProductForm(p);
     window.scrollTo({top:0,behavior:'smooth'});
   });
-  body.querySelectorAll('[data-delete]').forEach(b=>b.onclick=async()=>{
-    if(confirm('Product verwijderen?')){
-      await deleteDoc(doc(db,'products',b.dataset.delete));
-      products=products.filter(p=>p.id!==b.dataset.delete); renderProducts(); renderProductSearch();
-    }
+  body.querySelectorAll('[data-toggle-hidden]').forEach(b=>b.onclick=async()=>{
+    if(currentRole!=='admin') return;
+    const p=products.find(x=>x.id===b.dataset.toggleHidden);
+    if(!p) return;
+    const hidden=!p.hiddenFromSales;
+    try {
+      await updateDoc(doc(db,'products',p.id),{hiddenFromSales:hidden});
+      p.hiddenFromSales=hidden;
+      renderProducts(); renderProductSearch();
+      showToast(hidden?'Product verborgen in SALES.':'Product weer zichtbaar in SALES.');
+    } catch(e){ showToast('Opslaan mislukt: '+e.message); }
   });
 }
 
@@ -943,6 +949,7 @@ function renderProductSearch(){
   const category=(document.getElementById('saleCategoryFilter')?.value||'').trim();
 
   let arr=products.slice().filter(p=>{
+    if(p.hiddenFromSales===true) return false;
     if(category && String(p.category||'CANDY')!==category) return false;
     if(!words.length) return true;
     const hay=(String(p.name||'')+' '+String(p.code||'')).toLowerCase();
