@@ -224,3 +224,16 @@
 
 /* Melding prijswijziging: rode titel in hoofdletters */
 #priceChangeModal .price-change-alert-title { color: #dc2626 !important; font-weight: 900 !important; text-transform: uppercase; }
+
+/* Zichtbaar verplaatst van laatste kolom naar direct na Bewerken; zelfde breedtes. */
+@media (min-width:760px) {
+ #view-products th:nth-child(4){width:11%!important}
+ #view-products th:nth-child(5){width:20%!important}
+ #view-products th:nth-child(6){width:9%!important}
+ #view-products th:nth-child(7){width:7%!important}
+ #view-products th:nth-child(8){width:7%!important}
+ #view-products th:nth-child(9){width:7%!important}
+ #view-products th:nth-child(10){width:8%!important}
+ #view-products th:nth-child(11){width:7%!important}
+ #view-products th:nth-child(12){width:5%!important}
+}
