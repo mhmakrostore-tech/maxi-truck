@@ -205,3 +205,19 @@
  #view-products .admin-visibility-btn {min-width:34px!important}
  #view-products .admin-product-name {max-width:none!important}
 }
+
+/* Alleen breedtecorrectie voor de al juiste kolomvolgorde. */
+@media (min-width:760px) {
+ #view-products th:nth-child(1){width:4%!important}
+ #view-products th:nth-child(2){width:7%!important}
+ #view-products th:nth-child(3){width:8%!important}
+ #view-products th:nth-child(4){width:20%!important}
+ #view-products th:nth-child(5){width:9%!important}
+ #view-products th:nth-child(6){width:7%!important}
+ #view-products th:nth-child(7){width:7%!important}
+ #view-products th:nth-child(8){width:7%!important}
+ #view-products th:nth-child(9){width:8%!important}
+ #view-products th:nth-child(10){width:7%!important}
+ #view-products th:nth-child(11){width:5%!important}
+ #view-products th:nth-child(12){width:11%!important}
+}
