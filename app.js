@@ -374,12 +374,44 @@ function renderRestock(){
     <tr>
       <td><strong>${esc(p.code)}</strong></td>
       <td>${esc(p.name)}</td>
-      <td>${Number(p.stock||0)}</td>
+      <td><input class="restock-current-input" type="number" step="1" value="${Number(p.stock||0)}" data-current-stock="${p.id}" aria-label="Huidige voorraad ${esc(p.name)}" title="Wijzig voorraad en druk Enter of klik buiten dit vak"></td>
       <td><input class="restock-input" type="number" min="0" step="1" placeholder="0" data-restock="${p.id}"></td>
       <td class="restock-new" data-new-stock="${p.id}">${Number(p.stock||0)}</td>
     </tr>
   `).join(''):'<tr><td colspan="5" class="muted">Geen producten gevonden.</td></tr>';
 
+  body.querySelectorAll('[data-current-stock]').forEach(inp=>{
+    const p=products.find(x=>x.id===inp.dataset.currentStock);
+    if(!p)return;
+    const save=async()=>{
+      if(inp.disabled)return;
+      const raw=inp.value.trim();
+      const next=Number(raw);
+      if(raw===''||!Number.isInteger(next)){
+        showToast('Vul een geldig heel getal in.');
+        inp.value=Number(p.stock||0);
+        return;
+      }
+      if(next===Number(p.stock||0))return;
+      inp.disabled=true;
+      try{
+        await updateDoc(doc(db,'products',p.id),{stock:next});
+        p.stock=next;
+        autoSyncProductSig=currentProductSignature();
+        const addInp=body.querySelector(`[data-restock="${p.id}"]`);
+        const target=body.querySelector(`[data-new-stock="${p.id}"]`);
+        if(target)target.textContent=next+Math.max(0,Number(addInp?.value||0));
+        inp.classList.toggle('admin-negative-stock',next<0);
+        showToast('Huidige voorraad opgeslagen.');
+        renderNegativeStockAlert();
+      }catch(e){
+        inp.value=Number(p.stock||0);
+        showToast('Opslaan mislukt: '+e.message);
+      }finally{inp.disabled=false;}
+    };
+    inp.addEventListener('change',save);
+    inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();inp.blur();}});
+  });
   body.querySelectorAll('[data-restock]').forEach(inp=>{
     inp.addEventListener('input',()=>{
       const p=products.find(x=>x.id===inp.dataset.restock);
