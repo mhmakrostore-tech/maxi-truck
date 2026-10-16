@@ -924,6 +924,7 @@ function renderProducts(){
     <td>${p.photo?`<img class="product-thumb" src="${p.photo}" alt="">`:''}</td>
 
     <td><strong>${esc(p.code)}</strong></td>
+    <td>${currentRole==='admin'?`<button class="icon-btn admin-edit-btn" data-edit="${p.id}">Bewerken</button>`:''}</td>
     <td class="admin-product-name" title="${esc(p.name)}">${esc(p.name)}</td>
     <td>${esc(p.category||'-')}</td>
     <td>${money(p.price)}</td>
@@ -933,7 +934,7 @@ function renderProducts(){
     <td>${Number(p.commission||0).toFixed(2)}%</td>
     <td>${Number(p.ob||0).toLocaleString("nl-NL",{maximumFractionDigits:2})}%</td>
     <td>${currentRole==='admin'?`<button class="icon-btn admin-visibility-btn ${p.hiddenFromSales?'admin-show-btn':'admin-hide-btn'}" data-toggle-hidden="${p.id}" title="Klik om zichtbaarheid te veranderen">${p.hiddenFromSales?'Nee':'Ja'}</button>`:(p.hiddenFromSales?'Nee':'Ja')}</td>
-    <td>${currentRole==='admin'?`<button class="icon-btn admin-edit-btn" data-edit="${p.id}">Bewerken</button>`:''}</td>
+    
 
   </tr>`).join(''):'<tr><td colspan="12" class="muted">Geen producten.</td></tr>';
   body.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{
