@@ -221,3 +221,6 @@
  #view-products th:nth-child(11){width:5%!important}
  #view-products th:nth-child(12){width:11%!important}
 }
+
+/* Melding prijswijziging: rode titel in hoofdletters */
+#priceChangeModal .price-change-alert-title { color: #dc2626 !important; font-weight: 900 !important; text-transform: uppercase; }
