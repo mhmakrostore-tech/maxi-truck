@@ -237,3 +237,12 @@
  #view-products th:nth-child(11){width:7%!important}
  #view-products th:nth-child(12){width:5%!important}
 }
+
+
+/* Voorraad direct aanpassen in Beheerder; bestaande kolombreedtes behouden */
+#view-products .admin-stock-input{
+ width:100%;max-width:66px;min-width:0;box-sizing:border-box;
+ padding:5px 3px!important;font:inherit;text-align:center;
+ border:1px solid #cbd5e1;border-radius:5px;background:#fff;
+}
+#view-products .admin-stock-input.admin-negative-stock{color:#dc2626!important;font-weight:800!important}

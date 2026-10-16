@@ -931,7 +931,7 @@ function renderProducts(){
     <td>${money(p.price)}</td>
     <td>${p.p12Price!=null?money(p.p12Price):'-'}</td>
     <td>${p.crtPrice!=null?money(p.crtPrice):'-'}</td>
-    <td class="${Number(p.stock)<0?'admin-negative-stock':''}">${p.stock}</td>
+    <td class="${Number(p.stock)<0?'admin-negative-stock':''}">${currentRole==='admin'?`<input type="number" step="1" class="admin-stock-input ${Number(p.stock)<0?'admin-negative-stock':''}" data-stock-id="${p.id}" value="${Number(p.stock)||0}" aria-label="Voorraad van ${esc(p.name)} aanpassen" title="Wijzig voorraad en druk Enter of klik buiten het vak">`:p.stock}</td>
     <td>${Number(p.commission||0).toFixed(2)}%</td>
     <td>${Number(p.ob||0).toLocaleString("nl-NL",{maximumFractionDigits:2})}%</td>
 
@@ -942,6 +942,36 @@ function renderProducts(){
     const p=products.find(x=>x.id===b.dataset.edit); if(!p)return;
     fillProductForm(p);
     window.scrollTo({top:0,behavior:'smooth'});
+  });
+  body.querySelectorAll('[data-stock-id]').forEach(input=>{
+    const p=products.find(x=>x.id===input.dataset.stockId);
+    if(!p)return;
+    const save=async()=>{
+      if(input.disabled)return;
+      const raw=input.value.trim();
+      const next=Number(raw);
+      if(raw===''||!Number.isInteger(next)){
+        showToast('Vul een geldig heel aantal in.');
+        input.value=p.stock;
+        return;
+      }
+      if(next===Number(p.stock))return;
+      input.disabled=true;
+      try{
+        await updateDoc(doc(db,'products',p.id),{stock:next});
+        p.stock=next;
+        input.classList.toggle('admin-negative-stock',next<0);
+        input.closest('td')?.classList.toggle('admin-negative-stock',next<0);
+        showToast('Voorraad opgeslagen.');
+        renderProducts();
+        renderProductSearch();
+      }catch(e){
+        input.value=p.stock;
+        showToast('Voorraad opslaan mislukt: '+e.message);
+      }finally{input.disabled=false;}
+    };
+    input.addEventListener('change',save);
+    input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();input.blur();}});
   });
   body.querySelectorAll('[data-toggle-hidden]').forEach(b=>b.onclick=async()=>{
     if(currentRole!=='admin') return;
