@@ -1,0 +1,1 @@
+Maxi-Truck Beheerder compact: 11 kolommen zonder horizontaal scrollen op PC. Alle extra prijs- en commissievelden blijven bij Bewerken. De verkooptablet blijft ongewijzigd. Upload alle bestanden direct in de GitHub hoofdmap. Test na publicatie.
